@@ -5,6 +5,7 @@ export async function fetchKualiProgramList(catalogId = kualiConfig.catalogId): 
   const url = `${kualiConfig.baseUrl}/api/v1/catalog/programs/${catalogId}?q=`;
   const response = await fetch(url, {
     headers: { "User-Agent": kualiConfig.userAgent, Accept: "application/json" },
+    signal: AbortSignal.timeout(15000),
   });
 
   if (!response.ok) {
@@ -30,6 +31,7 @@ export async function fetchKualiProgramDetail(
     try {
       const response = await fetch(url, {
         headers: { "User-Agent": kualiConfig.userAgent, Accept: "application/json" },
+        signal: AbortSignal.timeout(10000),
       });
 
       if (response.ok) {
@@ -38,6 +40,17 @@ export async function fetchKualiProgramDetail(
 
       if (response.status === 404) {
         return null;
+      }
+
+      if (response.status === 429 || response.status === 503) {
+        const retryAfter = response.headers.get("Retry-After");
+        if (retryAfter) {
+          const delaySeconds = parseInt(retryAfter, 10);
+          if (!isNaN(delaySeconds) && delaySeconds > 0) {
+            await new Promise((res) => setTimeout(res, delaySeconds * 1000));
+            continue; // Skip default backoff below if Retry-After is honored
+          }
+        }
       }
     } catch (err) {
       if (attempt === retries) throw err;
@@ -60,6 +73,7 @@ export async function fetchKualiCourseDetail(
     try {
       const response = await fetch(url, {
         headers: { "User-Agent": kualiConfig.userAgent, Accept: "application/json" },
+        signal: AbortSignal.timeout(10000),
       });
 
       if (response.ok) {
@@ -68,6 +82,17 @@ export async function fetchKualiCourseDetail(
 
       if (response.status === 404) {
         return null;
+      }
+
+      if (response.status === 429 || response.status === 503) {
+        const retryAfter = response.headers.get("Retry-After");
+        if (retryAfter) {
+          const delaySeconds = parseInt(retryAfter, 10);
+          if (!isNaN(delaySeconds) && delaySeconds > 0) {
+            await new Promise((res) => setTimeout(res, delaySeconds * 1000));
+            continue;
+          }
+        }
       }
     } catch (err) {
       if (attempt === retries) throw err;

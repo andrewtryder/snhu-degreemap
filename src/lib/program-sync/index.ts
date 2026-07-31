@@ -19,38 +19,32 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
     const client = await pool.connect();
 
     try {
-      // 1. Inspect lease and current sync state
-      const stateRes = await client.query<ProgramSyncState>(
-        "SELECT * FROM program_sync_state WHERE id = 'program_sync' FOR UPDATE;"
-      );
-
-      const state = stateRes.rows[0];
-
-      if (state && state.status === "in_progress" && !options.ignoreLease) {
-        const leaseExpired = state.lease_expires_at && new Date() > new Date(state.lease_expires_at);
-        if (!leaseExpired) {
-          return {
-            action: "skipped",
-            status: "in_progress",
-            cursor: state.cursor,
-            importedCount: state.imported_count,
-            failedCount: state.failed_count,
-            message: "Sync currently in progress by another lease owner",
-          };
-        }
-      }
-
-      // 2. Acquire Lease & Update sync_state
+      // 1. Atomic Lease Acquisition
       const leaseExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minute lease
-      await client.query(
+      const leaseRes = await client.query<ProgramSyncState>(
         `
         UPDATE program_sync_state
         SET status = 'in_progress', sync_id = $1, started_at = NOW(),
             lease_expires_at = $2, last_error = NULL
-        WHERE id = 'program_sync';
-      `,
-        [syncId, leaseExpiresAt]
+        WHERE id = 'program_sync' AND (status != 'in_progress' OR lease_expires_at < NOW() OR $3 = true)
+        RETURNING *;
+        `,
+        [syncId, leaseExpiresAt, !!options.ignoreLease]
       );
+
+      if (leaseRes.rows.length === 0) {
+        const stateRes = await client.query<ProgramSyncState>("SELECT * FROM program_sync_state WHERE id = 'program_sync';");
+        const state = stateRes.rows[0];
+        return {
+          action: "skipped",
+          status: "in_progress",
+          cursor: state?.cursor || 0,
+          importedCount: state?.imported_count || 0,
+          skippedCount: state?.skipped_count || 0,
+          failedCount: state?.failed_count || 0,
+          message: "Sync currently in progress by another lease owner",
+        };
+      }
 
       // Ensure catalog entry exists
       const catalogDbId = `cat_${catalogId}`;
@@ -84,13 +78,14 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
       }
 
       await client.query(
-        "UPDATE program_sync_state SET expected_count = $1, cursor = 0, imported_count = 0, failed_count = 0 WHERE id = 'program_sync';",
+        "UPDATE program_sync_state SET expected_count = $1, cursor = 0, imported_count = 0, skipped_count = 0, failed_count = 0 WHERE id = 'program_sync';",
         [uniquePids.length]
       );
 
       // 4. Batch process program details
       let importedCount = 0;
       let failedCount = 0;
+      let skippedCount = 0;
       const referencedCoursesMap = new Map<string, { code: string; pid?: string }>();
 
       for (let i = 0; i < uniquePids.length; i += batchSize) {
@@ -123,6 +118,7 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
             }
           } else if (res.error === "Not found") {
             // Skipped non-program catalog entry or archived item
+            skippedCount++;
           } else {
             failedCount++;
             console.warn(`[Program Sync Warning] Failed to fetch/parse PID ${res.pid}: ${res.error}`);
@@ -131,8 +127,8 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
 
         const currentCursor = i + batchPids.length;
         await client.query(
-          "UPDATE program_sync_state SET cursor = $1, imported_count = $2, failed_count = $3 WHERE id = 'program_sync';",
-          [currentCursor, importedCount, failedCount]
+          "UPDATE program_sync_state SET cursor = $1, imported_count = $2, skipped_count = $3, failed_count = $4 WHERE id = 'program_sync';",
+          [currentCursor, importedCount, skippedCount, failedCount]
         );
       }
 
@@ -176,6 +172,17 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
 
       // 6. Validate Staging Database
       console.log(`[Program Sync] Validating staging tables before promotion...`);
+
+      const processedCount = importedCount + skippedCount + failedCount;
+      if (processedCount !== uniquePids.length) {
+        throw new Error(`Sync snapshot mismatch: processed ${processedCount} but expected ${uniquePids.length}`);
+      }
+
+      const skipRate = skippedCount / uniquePids.length;
+      if (skipRate > 0.2) {
+        throw new Error(`Skipped program rate too high: ${(skipRate * 100).toFixed(1)}% (${skippedCount}/${uniquePids.length})`);
+      }
+
       const validation = await validateStaging(
         client,
         uniquePids.length,
@@ -196,6 +203,7 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
           cursor: uniquePids.length,
           expectedCount: uniquePids.length,
           importedCount,
+          skippedCount,
           failedCount,
           promoted: false,
           error: errorMsg,
@@ -226,6 +234,7 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
         cursor: uniquePids.length,
         expectedCount: uniquePids.length,
         importedCount,
+        skippedCount,
         failedCount,
         promoted: true,
         message: `Successfully synchronized and promoted ${importedCount} programs and ${parsedCourses.length} courses to live database.`,
@@ -252,6 +261,7 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
       status: "error",
       cursor: 0,
       importedCount: 0,
+      skippedCount: 0,
       failedCount: 0,
       promoted: false,
       error: errorMsg,

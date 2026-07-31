@@ -45,7 +45,7 @@ export async function runMigrations(connectionString?: string) {
         slug TEXT NOT NULL,
         title TEXT NOT NULL,
         credential TEXT NOT NULL,
-        total_credits INTEGER NOT NULL,
+        total_credits INTEGER,
         description_summary TEXT,
         source_url TEXT,
         source_hash TEXT,
@@ -62,7 +62,7 @@ export async function runMigrations(connectionString?: string) {
         slug TEXT NOT NULL,
         title TEXT NOT NULL,
         credential TEXT NOT NULL,
-        total_credits INTEGER NOT NULL,
+        total_credits INTEGER,
         description_summary TEXT,
         source_url TEXT,
         source_hash TEXT,
@@ -119,7 +119,7 @@ export async function runMigrations(connectionString?: string) {
         source_pid TEXT,
         course_code TEXT NOT NULL,
         title TEXT NOT NULL,
-        credits INTEGER NOT NULL,
+        credits INTEGER,
         is_optional BOOLEAN DEFAULT false,
         sort_order INTEGER NOT NULL DEFAULT 0
       );
@@ -131,7 +131,7 @@ export async function runMigrations(connectionString?: string) {
         source_pid TEXT,
         course_code TEXT NOT NULL,
         title TEXT NOT NULL,
-        credits INTEGER NOT NULL,
+        credits INTEGER,
         is_optional BOOLEAN DEFAULT false,
         sort_order INTEGER NOT NULL DEFAULT 0
       );
@@ -164,7 +164,7 @@ export async function runMigrations(connectionString?: string) {
         course_code TEXT PRIMARY KEY,
         source_pid TEXT,
         title TEXT NOT NULL,
-        credits INTEGER NOT NULL,
+        credits INTEGER,
         subject_code TEXT,
         source_hash TEXT,
         synced_at TIMESTAMPTZ
@@ -174,7 +174,7 @@ export async function runMigrations(connectionString?: string) {
         course_code TEXT PRIMARY KEY,
         source_pid TEXT,
         title TEXT NOT NULL,
-        credits INTEGER NOT NULL,
+        credits INTEGER,
         subject_code TEXT,
         source_hash TEXT,
         synced_at TIMESTAMPTZ
@@ -209,6 +209,7 @@ export async function runMigrations(connectionString?: string) {
         cursor INTEGER NOT NULL DEFAULT 0,
         expected_count INTEGER,
         imported_count INTEGER NOT NULL DEFAULT 0,
+        skipped_count INTEGER NOT NULL DEFAULT 0,
         failed_count INTEGER NOT NULL DEFAULT 0,
         started_at TIMESTAMPTZ,
         completed_at TIMESTAMPTZ,
@@ -222,6 +223,22 @@ export async function runMigrations(connectionString?: string) {
     await client.query(`
       ALTER TABLE program_sync_state ADD COLUMN IF NOT EXISTS sync_id UUID;
       ALTER TABLE program_sync_state ADD COLUMN IF NOT EXISTS failed_count INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE program_sync_state ADD COLUMN IF NOT EXISTS skipped_count INTEGER NOT NULL DEFAULT 0;
+
+      ALTER TABLE programs ALTER COLUMN total_credits DROP NOT NULL;
+      ALTER TABLE programs ALTER COLUMN total_credits DROP DEFAULT;
+      ALTER TABLE programs_stage ALTER COLUMN total_credits DROP NOT NULL;
+      ALTER TABLE programs_stage ALTER COLUMN total_credits DROP DEFAULT;
+
+      ALTER TABLE program_requirement_courses ALTER COLUMN credits DROP NOT NULL;
+      ALTER TABLE program_requirement_courses ALTER COLUMN credits DROP DEFAULT;
+      ALTER TABLE program_requirement_courses_stage ALTER COLUMN credits DROP NOT NULL;
+      ALTER TABLE program_requirement_courses_stage ALTER COLUMN credits DROP DEFAULT;
+
+      ALTER TABLE degree_courses ALTER COLUMN credits DROP NOT NULL;
+      ALTER TABLE degree_courses ALTER COLUMN credits DROP DEFAULT;
+      ALTER TABLE degree_courses_stage ALTER COLUMN credits DROP NOT NULL;
+      ALTER TABLE degree_courses_stage ALTER COLUMN credits DROP DEFAULT;
     `);
 
     // 9. Sync Items Snapshot Table
@@ -237,8 +254,8 @@ export async function runMigrations(connectionString?: string) {
 
     // Initialize sync state row if absent
     await client.query(`
-      INSERT INTO program_sync_state (id, status, cursor, imported_count, failed_count)
-      VALUES ('program_sync', 'awaiting_bootstrap', 0, 0, 0)
+      INSERT INTO program_sync_state (id, status, cursor, imported_count, skipped_count, failed_count)
+      VALUES ('program_sync', 'awaiting_bootstrap', 0, 0, 0, 0)
       ON CONFLICT (id) DO NOTHING;
     `);
 

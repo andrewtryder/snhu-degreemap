@@ -7,6 +7,7 @@ export interface SyncResult {
   cursor: number;
   expectedCount?: number;
   importedCount: number;
+  skippedCount: number;
   failedCount: number;
   promoted?: boolean;
   message?: string;
@@ -39,6 +40,7 @@ export interface ProgramSyncState {
   cursor: number;
   expected_count: number | null;
   imported_count: number;
+  skipped_count: number;
   failed_count: number;
   started_at: Date | null;
   completed_at: Date | null;

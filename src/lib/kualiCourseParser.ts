@@ -5,7 +5,7 @@ export interface NormalizedCourseDetails {
   pid: string;
   code: string;
   title: string;
-  credits: number;
+  credits: number | null;
   description: string;
   prerequisiteText?: string;
   prerequisites: string[]; // List of prerequisite course codes
@@ -22,7 +22,7 @@ export function parseCourseDetails(raw: unknown): NormalizedCourseDetails {
   const title = raw.title || code;
   const description = raw.description || "";
 
-  let credits = 3;
+  let credits: number | null = null;
   if (typeof raw.credits === "number") {
     credits = raw.credits;
   } else if (typeof raw.credits === "string") {

@@ -21,7 +21,7 @@ export interface CourseRequirementDomain {
   sourcePid?: string;
   courseCode: string;
   title: string;
-  credits: number;
+  credits: number | null;
   optional?: boolean;
   sourcePath: string;
   warnings?: ParserWarning[];
@@ -48,7 +48,7 @@ export interface CatalogProgram {
   credential: string;
   catalogId: string;
   catalogYearLabel: string;
-  totalCredits: number;
+  totalCredits: number | null;
   sourceUrl: string;
   descriptionSummary: string;
   requirementGroups: RequirementGroupDomain[];

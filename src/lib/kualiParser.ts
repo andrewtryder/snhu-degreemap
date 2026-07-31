@@ -182,7 +182,7 @@ export function parseRequirementTree(
             const parentLiText = anchor.closest("li").text().trim();
             const parts = parentLiText.split("-");
             let cTitle = parts.length > 1 ? parts.slice(1).join("-").trim() : parentLiText;
-            let cCredits = 3;
+            let cCredits: number | null = null;
 
             const crMatch = cTitle.match(/\((\d+)(?:\s*-\s*\d+)?\)/);
             if (crMatch) {
@@ -273,7 +273,7 @@ export function parseProgramDetail(
     credential,
     catalogId,
     catalogYearLabel,
-    totalCredits: totalCredits || 120,
+    totalCredits: totalCredits || null,
     sourceUrl,
     descriptionSummary,
     requirementGroups: groups,
@@ -309,7 +309,7 @@ export function calculateKnownCreditSummary(groups: RequirementGroupDomain[]): n
       sum += group.minimumCredits;
     } else {
       for (const cr of group.courseRequirements) {
-        sum += cr.credits;
+        sum += cr.credits || 0;
       }
     }
   }

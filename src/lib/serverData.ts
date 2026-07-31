@@ -222,16 +222,20 @@ export const getProgramBySlug = cache(
 
               // Link prerequisite into node
               const targetNode = nodesMap.get(eRow.target_course_code);
-              if (targetNode && !targetNode.prerequisites?.includes(srcId)) {
-                targetNode.prerequisites = [...(targetNode.prerequisites || []), srcId];
-              }
+              const sourceNode = nodesMap.get(eRow.source_course_code);
+              
+              if (targetNode && sourceNode) {
+                if (!targetNode.prerequisites?.includes(srcId)) {
+                  targetNode.prerequisites = [...(targetNode.prerequisites || []), srcId];
+                }
 
-              edges.push({
-                id: `e_${srcId}_${tgtId}`,
-                source: srcId,
-                target: tgtId,
-                type: eRow.relationship_type === "corequisite" ? "corequisite" : "prerequisite",
-              });
+                edges.push({
+                  id: `e_${srcId}_${tgtId}`,
+                  source: srcId,
+                  target: tgtId,
+                  type: eRow.relationship_type === "corequisite" ? "corequisite" : "prerequisite",
+                });
+              }
             }
 
             const nodes = Array.from(nodesMap.values());
@@ -243,7 +247,7 @@ export const getProgramBySlug = cache(
               degreeLevel: (p.credential.includes("Nursing") ? "RN to BSN" : p.credential.includes("Arts") ? "BA" : "BS") as DegreeProgram["degreeLevel"],
               credential: p.credential,
               catalogYear: p.catalogYear || "2025-2026",
-              totalCredits: p.totalCredits || 120,
+              totalCredits: p.totalCredits || null,
               requiredCourseCount: nodes.length || fixture?.requiredCourseCount || 24,
               electiveCredits: fixture?.electiveCredits || 36,
               estimatedDuration: fixture?.estimatedDuration || "4 Years (8 Semesters)",
