@@ -7,8 +7,8 @@ export function parseProgramPayload(raw: RawKualiProgramDetail, catalogId?: stri
   return parseProgramDetail(raw, catalogId);
 }
 
-export function parseCoursePayload(raw: RawKualiCourseItem): NormalizedCourseDetails {
-  return parseCourseDetails(raw);
+export function parseCoursePayload(raw: RawKualiCourseItem, fallbackCode?: string): NormalizedCourseDetails {
+  return parseCourseDetails(raw, fallbackCode);
 }
 
 export { extractCourseReferences, generatePrerequisiteEdges };

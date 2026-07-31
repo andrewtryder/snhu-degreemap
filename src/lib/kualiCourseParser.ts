@@ -22,13 +22,14 @@ export interface NormalizedCourseDetails {
   resolutionStatus?: "resolved" | "not_found" | "failed" | "unavailable";
 }
 
-export function parseCourseDetails(raw: unknown): NormalizedCourseDetails {
+export function parseCourseDetails(raw: unknown, fallbackCode?: string): NormalizedCourseDetails {
   if (!isRawCourseItem(raw)) {
     throw new Error("Invalid Kuali course detail item");
   }
 
   const pid = raw.pid || raw.id || "unknown-pid";
-  const code = normalizeCourseCode(raw.code || raw.subjectCode?.name || "UNKNOWN");
+  const sourceCode = raw.code && /\d{3}/.test(raw.code) ? raw.code : fallbackCode || raw.subjectCode?.name || "UNKNOWN";
+  const code = normalizeCourseCode(sourceCode);
   const title = raw.title || code;
   const description = raw.description || "";
 

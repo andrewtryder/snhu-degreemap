@@ -48,6 +48,40 @@ export async function fetchKualiProgramList(catalogId = kualiConfig.catalogId): 
   return data as RawKualiProgramListItem[];
 }
 
+/**
+ * Requirement links expose a course's internal `id`; Kuali's detail endpoint
+ * instead requires its public `pid`. This index supplies that translation.
+ */
+export async function fetchKualiCourseList(catalogId = kualiConfig.catalogId): Promise<RawKualiCourseItem[]> {
+  const url = `${kualiConfig.baseUrl}/api/v1/catalog/courses/${catalogId}?q=`;
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { "User-Agent": kualiConfig.userAgent, Accept: "application/json" },
+      signal: AbortSignal.timeout(kualiConfig.timeoutMs),
+    });
+  } catch (err) {
+    throw new Error(`Failed network request for course list: ${(err as Error).message}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch course list from Kuali: HTTP ${response.status}`);
+  }
+
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("Invalid JSON response for course list");
+  }
+
+  if (!Array.isArray(data)) {
+    throw new Error("Invalid course list response structure: expected array");
+  }
+
+  return data as RawKualiCourseItem[];
+}
+
 export async function fetchKualiProgramDetail(
   pid: string,
   catalogId = kualiConfig.catalogId,

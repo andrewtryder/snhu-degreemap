@@ -19,6 +19,20 @@ describe("kualiCourseParser utility", () => {
     expect(course.pid).toBe("61ed75d237ce9b227c9086b5");
   });
 
+  it("preserves the requirement-link code when Kuali detail payloads omit it", () => {
+    const course = parseCourseDetails(
+      {
+        pid: "public-course-pid",
+        id: "internal-course-id",
+        title: "Applied Statistics",
+        subjectCode: { name: "MAT" },
+      },
+      "MAT240"
+    );
+
+    expect(course.code).toBe("MAT 240");
+  });
+
   it("extracts prerequisite course codes from text", () => {
     const text1 = "Prerequisite: IT-140 and MAT-140 with a grade of C or better.";
     const result1 = extractCoursePrerequisitesFromText(text1);
@@ -50,7 +64,7 @@ describe("kualiCourseParser utility", () => {
   });
 
   it("generates prerequisite edges matching course catalog dependencies", () => {
-    const parsedCourses = sampleCourseDetails.map(parseCourseDetails);
+    const parsedCourses = sampleCourseDetails.map((course) => parseCourseDetails(course));
     const edges = generatePrerequisiteEdges(parsedCourses);
 
     expect(Array.isArray(edges)).toBe(true);

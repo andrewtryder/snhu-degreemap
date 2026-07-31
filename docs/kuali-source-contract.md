@@ -54,6 +54,8 @@ Kuali publishes program requirements as embedded HTML containing semantic sectio
 - `<span>42</span><span>Total Credits</span>`: Group total credit target.
 - `<a href="#/courses/view/{pid}">`: Course reference links containing course code text (e.g. `CS 210`, `IT 145`).
 
+> Kuali's requirement-link identifier is the course record's internal `id`, despite the route name. The course-detail endpoint requires the separate public `pid`; synchronization first builds an `id` → `pid` index from `/courses/{catalogId}?q=` before fetching details.
+
 ### Parser Resiliency & Fallback Behavior
 - **Course-code canonicalization**: Course references are normalized to uppercase `SUBJ NNN` display form and a punctuation-free comparison key, so `ACC-201`, `ACC 201`, and `ACC201` resolve to the same course.
 - **Rule Type Mapping**:
