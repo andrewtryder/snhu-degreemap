@@ -14,7 +14,7 @@ interface CustomCourseNodeData extends CourseNodeData {
 }
 
 export const CustomCourseNode = memo(({ data }: NodeProps & { data: CustomCourseNodeData }) => {
-  const { code, title, credits, palette, isPlaceholder, isHighlighted, isFilteredOut } = data;
+  const { code, title, credits, palette, isPlaceholder, isExternal, resolutionStatus, isHighlighted, isFilteredOut } = data;
 
   const transferSnapshot = getTransferSnapshotForCourse(code);
 
@@ -25,7 +25,7 @@ export const CustomCourseNode = memo(({ data }: NodeProps & { data: CustomCourse
 
   return (
     <div
-      className={`group relative flex h-[80px] w-[180px] flex-col justify-between rounded-lg border-2 p-2.5 shadow-sm transition-all hover:shadow-md ${opacityClass} ${highlightClass}`}
+      className={`group relative flex h-[80px] w-[180px] flex-col justify-between rounded-lg border-2 p-2.5 shadow-sm transition-all hover:shadow-md ${opacityClass} ${highlightClass} ${isExternal ? "border-dashed" : ""}`}
       style={{
         backgroundColor: palette.bg,
         borderColor: palette.border,
@@ -53,6 +53,7 @@ export const CustomCourseNode = memo(({ data }: NodeProps & { data: CustomCourse
               <ArrowRightLeftIcon className="h-2.5 w-2.5" />
             </span>
           )}
+          {isExternal && <span className="text-[9px] font-semibold text-on-surface-variant">External</span>}
         </div>
         <span
           className="rounded-full px-1.5 py-0.2 text-[10px] font-semibold text-white"
@@ -72,6 +73,10 @@ export const CustomCourseNode = memo(({ data }: NodeProps & { data: CustomCourse
           title
         )}
       </div>
+
+      {resolutionStatus && resolutionStatus !== "resolved" && !isExternal && (
+        <span className="text-[9px] font-medium text-amber-800">Details unavailable</span>
+      )}
 
       <Handle
         type="source"

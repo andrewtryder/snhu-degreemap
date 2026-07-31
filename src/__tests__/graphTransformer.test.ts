@@ -66,4 +66,22 @@ describe("graphTransformer Analysis Engine", () => {
     expect(graph.insights.startingCourses).toContain("CS 110");
     expect(graph.insights.longestPathLength).toBe(4);
   });
+
+  it("keeps corequisites, external nodes, and unresolved nodes out of sequence insights", () => {
+    const nodes: CourseNodeData[] = [
+      { id: "BUS100", code: "BUS 100", title: "Business", credits: 3, groupCode: "core", groupName: "Core", groupCategory: "core", resolutionStatus: "resolved" },
+      { id: "BUS200", code: "BUS 200", title: "Business II", credits: 3, groupCode: "core", groupName: "Core", groupCategory: "core", resolutionStatus: "resolved" },
+      { id: "ACC201", code: "ACC 201", title: "External", credits: null, groupCode: "external", groupName: "External Prerequisites", groupCategory: "other", isExternal: true, resolutionStatus: "unavailable" },
+      { id: "PSY300", code: "PSY 300", title: "Unavailable", credits: 3, groupCode: "major", groupName: "Major", groupCategory: "major", resolutionStatus: "failed" },
+    ];
+    const edges: PrerequisiteEdgeData[] = [
+      { id: "coreq", source: "BUS100", target: "BUS200", type: "corequisite" },
+      { id: "external", source: "ACC201", target: "BUS200", type: "prerequisite" },
+    ];
+
+    const graph = buildDegreeGraph(nodes, edges);
+    expect(graph.insights.startingCourses).toEqual(["BUS 100"]);
+    expect(graph.insights.longestPath).toEqual(["BUS 100"]);
+    expect(graph.insights.totalKnownCourses).toBe(2);
+  });
 });

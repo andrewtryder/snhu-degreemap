@@ -34,6 +34,9 @@ export function CourseDetailDrawer({ course, onClose, allCourses = [] }: CourseD
   const prereqCourses = (course.prerequisites || [])
     .map((id) => allCourses.find((c) => c.id === id || c.code === id))
     .filter(Boolean) as CourseNodeData[];
+  const coreqCourses = (course.corequisites || [])
+    .map((id) => allCourses.find((c) => c.id === id || c.code === id))
+    .filter(Boolean) as CourseNodeData[];
 
   const unlockedCourses = allCourses.filter((c) =>
     (c.prerequisites || []).includes(course.id) || (c.prerequisites || []).includes(course.code)
@@ -57,6 +60,10 @@ export function CourseDetailDrawer({ course, onClose, allCourses = [] }: CourseD
             {course.isPlaceholder && (
               <Badge variant="outline">Elective Placeholder</Badge>
             )}
+            {course.isExternal && <Badge variant="outline">External prerequisite</Badge>}
+            {course.resolutionStatus && course.resolutionStatus !== "resolved" && !course.isExternal && (
+              <Badge variant="outline">Catalog details unavailable</Badge>
+            )}
             <Badge variant="neutral">{course.credits} Semester Credits</Badge>
           </div>
 
@@ -73,6 +80,12 @@ export function CourseDetailDrawer({ course, onClose, allCourses = [] }: CourseD
             )}
           </div>
         </div>
+
+        {course.resolutionStatus && course.resolutionStatus !== "resolved" && !course.isExternal && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+            Catalog course details could not be resolved, so prerequisite relationships may be incomplete. Verify this course with SNHU before planning enrollment.
+          </div>
+        )}
 
         {/* Transfer Options Card (snhu-transfers integration) */}
         {transferSnapshot && transferUrl && (
@@ -137,8 +150,28 @@ export function CourseDetailDrawer({ course, onClose, allCourses = [] }: CourseD
             </ul>
           ) : (
             <p className="mt-1 text-xs italic text-on-surface-variant">
-              No prerequisites required. Starting course open for direct enrollment.
+              {(course.resolutionStatus || "resolved") === "resolved"
+                ? "No catalog prerequisite links were identified. Verify enrollment requirements with SNHU."
+                : "Prerequisite relationships are unavailable until catalog course details can be resolved."}
             </p>
+          )}
+        </div>
+
+        <div>
+          <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+            <ArrowRightLeftIcon className="h-4 w-4" /> Direct Corequisites ({coreqCourses.length})
+          </h4>
+          {coreqCourses.length > 0 ? (
+            <ul className="mt-2 space-y-2">
+              {coreqCourses.map((req) => (
+                <li key={req.id} className="flex items-center justify-between rounded-lg border border-surface-variant bg-surface-container-low p-2.5 text-xs">
+                  <span className="font-bold text-primary">{req.code}</span>
+                  <span className="text-on-surface">{req.title}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-xs italic text-on-surface-variant">No catalog corequisite links were identified.</p>
           )}
         </div>
 

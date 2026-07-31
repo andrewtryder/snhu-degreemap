@@ -1,6 +1,7 @@
 import { PoolClient } from "pg";
 import { CatalogProgram, RequirementGroupDomain, PrerequisiteEdgeDomain } from "@/types/domainCatalog";
 import { NormalizedCourseDetails } from "@/lib/kualiCourseParser";
+import { normalizeCourseCode } from "@/lib/courseCode";
 
 export async function persistProgramToStaging(
   client: PoolClient,
@@ -142,6 +143,7 @@ export async function persistCoursesToStaging(
   courses: NormalizedCourseDetails[]
 ): Promise<void> {
   for (const course of courses) {
+    const courseCode = normalizeCourseCode(course.code);
     const credits = typeof course.credits === "number" ? course.credits : null;
     await client.query(
       `
@@ -156,11 +158,11 @@ export async function persistCoursesToStaging(
         synced_at = NOW();
     `,
       [
-        course.code,
+        courseCode,
         course.pid,
         course.title,
         credits,
-        course.code.split(" ")[0] || "GEN",
+        courseCode.split(" ")[0] || "GEN",
         course.pid,
         course.resolutionStatus || "resolved",
       ]

@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import * as cheerio from "cheerio";
+import type { Element } from "domhandler";
 import { GroupCategory, DegreeLevel } from "@/types/program";
 import {
   isRawProgramListItem,
@@ -12,6 +13,7 @@ import {
   RuleType,
   ParserWarning,
 } from "@/types/domainCatalog";
+import { normalizeCourseCode } from "@/lib/courseCode";
 
 export function hashSourcePayload(raw: unknown): string {
   const jsonStr = JSON.stringify(raw ?? "");
@@ -168,90 +170,21 @@ export function parseRequirementTree(
       const creditMatch = headerSpanText.match(/(\d+)\s*Total Credits/i);
       const groupCredits = creditMatch ? parseInt(creditMatch[1], 10) : undefined;
 
-      const category = mapTitleToGroupCategory(groupTitle);
-      const courseRequirements: CourseRequirementDomain[] = [];
-      const textRequirements: string[] = [];
-      const childGroups: RequirementGroupDomain[] = [];
-      const seenCourseCodes = new Set<string>();
-
-      let ruleType: RuleType = "all_of";
-      let minimumSelections: number | undefined = undefined;
-      const minimumCredits: number | undefined = groupCredits;
-
-      const sectionText = $(element).text();
-      if (sectionText.includes("Complete 1 of the following") || sectionText.includes("1 of the following:")) {
-        ruleType = "choose_n";
-        minimumSelections = 1;
-      } else if (sectionText.includes("Free Electives")) {
-        ruleType = "free_elective";
-      } else if (sectionText.includes("Concentration")) {
-        ruleType = "concentration";
-      } else if (sectionText.includes("credit(s) from")) {
-        ruleType = "choose_credits";
-      }
-
-      // Parse course links: <a href="#/courses/view/{pid}">CODE</a> - Course Title (Credits)
-      $(element)
-        .find("a[href*='/courses/view/']")
-        .each((cIndex, anchorElem) => {
-          const anchor = $(anchorElem);
-          const courseCode = anchor.text().trim();
-          const href = anchor.attr("href") || "";
-          const pidMatch = href.match(/\/courses\/view\/([a-zA-Z0-9_]+)/);
-          const sourcePid = pidMatch ? pidMatch[1] : undefined;
-
-          if (courseCode && !seenCourseCodes.has(courseCode)) {
-            seenCourseCodes.add(courseCode);
-
-            const parentLiText = anchor.closest("li").text().trim();
-            const parts = parentLiText.split("-");
-            let cTitle = parts.length > 1 ? parts.slice(1).join("-").trim() : parentLiText;
-            let cCredits: number | null = null;
-
-            const crMatch = cTitle.match(/\((\d+)(?:\s*-\s*\d+)?\)/);
-            if (crMatch) {
-              cCredits = parseInt(crMatch[1], 10);
-              cTitle = cTitle.replace(/\(\d+(?:\s*-\s*\d+)?\)/, "").trim();
-            }
-
-            courseRequirements.push({
-              sourcePid,
-              courseCode,
-              title: cTitle || courseCode,
-              credits: cCredits,
-              sourcePath: `${sectionPath}.course[${cIndex}]`,
-            });
-          }
-        });
-
-      // Extract text rules
-      $(element)
-        .find("li")
-        .each((_, liElem) => {
-          const itemText = $(liElem).text().trim();
-          if (
-            itemText &&
-            !itemText.startsWith("Complete") &&
-            !itemText.includes("Total Credits") &&
-            $(liElem).find("a[href*='/courses/view/']").length === 0 &&
-            !textRequirements.includes(itemText)
-          ) {
-            textRequirements.push(itemText);
-          }
-        });
-
-      groups.push({
+      const rootGroup: RequirementGroupDomain = {
         stableSourcePath: sectionPath,
         title: groupTitle,
-        category,
-        ruleType,
-        minimumSelections,
-        minimumCredits,
-        children: childGroups,
-        courseRequirements,
-        textRequirements,
+        category: mapTitleToGroupCategory(groupTitle),
+        ruleType: inferRuleType(groupTitle),
+        minimumSelections: inferMinimumSelections(groupTitle),
+        minimumCredits: groupCredits ?? inferMinimumCredits(groupTitle),
+        children: [],
+        courseRequirements: [],
+        textRequirements: [],
         warnings: [],
-      });
+      };
+
+      parseRuleChildren($, element, rootGroup, sectionPath);
+      groups.push(rootGroup);
     });
   } catch (err: unknown) {
     warnings.push({
@@ -261,6 +194,137 @@ export function parseRequirementTree(
   }
 
   return { groups, totalCredits: grandTotalCredits, warnings };
+}
+
+function inferRuleType(text: string): RuleType {
+  const normalized = text.toLowerCase();
+  if (/free electives?/.test(normalized)) return "free_elective";
+  if (/concentration/.test(normalized)) return "concentration";
+  if (/\b\d+\s*credit\(s\)\s*from/.test(normalized)) return "choose_credits";
+  if (/\b\d+\s+of the following/.test(normalized) || /complete\s+\d+\s+of/.test(normalized)) return "choose_n";
+  return "all_of";
+}
+
+function inferMinimumSelections(text: string): number | undefined {
+  const match = text.match(/(?:complete\s+)?(\d+)\s+of the following/i);
+  return match ? parseInt(match[1], 10) : undefined;
+}
+
+function inferMinimumCredits(text: string): number | undefined {
+  const match = text.match(/(\d+)\s*credit\(s\)/i);
+  return match ? parseInt(match[1], 10) : undefined;
+}
+
+function directChildLis($: cheerio.CheerioAPI, owner: Element): Element[] {
+  const ownerIsListItem = $(owner).is("li");
+  return $(owner)
+    .find("li")
+    .filter((_, candidate) =>
+      ownerIsListItem
+        ? $(candidate).parents("li").first().get(0) === owner
+        : $(candidate).parents("li").length === 0
+    )
+    .toArray();
+}
+
+function directCourseAnchors($: cheerio.CheerioAPI, owner: Element): Element[] {
+  return $(owner)
+    .find("a[href*='/courses/view/']")
+    .filter((_, candidate) => $(candidate).closest("li").get(0) === owner)
+    .toArray();
+}
+
+function getDirectRuleText($: cheerio.CheerioAPI, element: Element): string {
+  const clone = $(element).clone();
+  clone.find("ul, ol").remove();
+  clone.find("a").remove();
+  return clone.text().replace(/\s+/g, " ").trim();
+}
+
+function parseCourseAnchor(
+  $: cheerio.CheerioAPI,
+  anchorElement: Element,
+  sourcePath: string
+): CourseRequirementDomain | null {
+  const anchor = $(anchorElement);
+  const courseCode = normalizeCourseCode(anchor.text());
+  if (!courseCode) return null;
+
+  const href = anchor.attr("href") || "";
+  const pidMatch = href.match(/\/courses\/view\/([a-zA-Z0-9_]+)/);
+  const parentLiText = anchor.closest("li").text().replace(/\s+/g, " ").trim();
+  const titleText = parentLiText.replace(anchor.text(), "").replace(/^\s*-\s*/, "").trim();
+  const creditMatch = titleText.match(/\((\d+)(?:\s*-\s*\d+)?\)/);
+
+  return {
+    sourcePid: pidMatch ? pidMatch[1] : undefined,
+    courseCode,
+    title: (creditMatch ? titleText.replace(creditMatch[0], "") : titleText).trim() || courseCode,
+    credits: creditMatch ? parseInt(creditMatch[1], 10) : null,
+    sourcePath,
+  };
+}
+
+function parseRuleChildren(
+  $: cheerio.CheerioAPI,
+  owner: Element,
+  parent: RequirementGroupDomain,
+  parentPath: string
+): void {
+  const seenCourses = new Set(parent.courseRequirements.map((course) => course.courseCode));
+  const children = directChildLis($, owner);
+
+  children.forEach((li, index) => {
+    const childLis = directChildLis($, li);
+    const anchors = directCourseAnchors($, li);
+    const dataTest = $(li).attr("data-test") || "";
+    const isRuleGroup = childLis.length > 0 || /^ruleView-/.test(dataTest);
+    const childPath = `${parentPath}.rule[${index}]`;
+
+    if (isRuleGroup) {
+      const ruleText = getDirectRuleText($, li);
+      const group: RequirementGroupDomain = {
+        stableSourcePath: childPath,
+        title: ruleText || `Requirement ${index + 1}`,
+        category: parent.category,
+        ruleType: inferRuleType(ruleText),
+        minimumSelections: inferMinimumSelections(ruleText),
+        minimumCredits: inferMinimumCredits(ruleText),
+        children: [],
+        courseRequirements: [],
+        textRequirements: [],
+        warnings: [],
+      };
+
+      const groupSeen = new Set<string>();
+      anchors.forEach((anchor, anchorIndex) => {
+        const course = parseCourseAnchor($, anchor, `${childPath}.course[${anchorIndex}]`);
+        if (course && !groupSeen.has(course.courseCode)) {
+          groupSeen.add(course.courseCode);
+          group.courseRequirements.push(course);
+        }
+      });
+      if (anchors.length === 0 && ruleText && !/^(complete\s+)?(?:all|\d+\s+of)/i.test(ruleText)) {
+        group.textRequirements.push(ruleText);
+      }
+      parseRuleChildren($, li, group, childPath);
+      parent.children.push(group);
+      return;
+    }
+
+    anchors.forEach((anchor, anchorIndex) => {
+      const course = parseCourseAnchor($, anchor, `${parentPath}.course[${index}-${anchorIndex}]`);
+      if (course && !seenCourses.has(course.courseCode)) {
+        seenCourses.add(course.courseCode);
+        parent.courseRequirements.push(course);
+      }
+    });
+
+    const text = getDirectRuleText($, li);
+    if (anchors.length === 0 && text && !parent.textRequirements.includes(text)) {
+      parent.textRequirements.push(text);
+    }
+  });
 }
 
 export function parseProgramDetail(
@@ -312,8 +376,9 @@ export function extractCourseReferences(program: CatalogProgram): Array<{ code: 
   const traverse = (groups: RequirementGroupDomain[]) => {
     for (const group of groups) {
       for (const course of group.courseRequirements) {
-        if (!refs.has(course.courseCode)) {
-          refs.set(course.courseCode, { code: course.courseCode, pid: course.sourcePid });
+        const code = normalizeCourseCode(course.courseCode);
+        if (code && !refs.has(code)) {
+          refs.set(code, { code, pid: course.sourcePid });
         }
       }
       if (group.children.length > 0) {

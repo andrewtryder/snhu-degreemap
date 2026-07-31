@@ -97,6 +97,34 @@ export async function validateStaging(
   const edgeRes = await client.query<{ count?: string }>("SELECT COUNT(*) as count FROM degree_course_edges_stage;");
   const edgeCount = parseInt(edgeRes?.rows?.[0]?.count || "0", 10);
 
+  const liveEdgeRes = await client.query<{ count?: string }>("SELECT COUNT(*) as count FROM degree_course_edges;");
+  const liveEdgeCount = parseInt(liveEdgeRes?.rows?.[0]?.count || "0", 10);
+
+  const stageResolvedRes = await client.query<{ total?: string; resolved?: string }>(
+    "SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE resolution_status = 'resolved') as resolved FROM degree_courses_stage;"
+  );
+  const liveResolvedRes = await client.query<{ total?: string; resolved?: string }>(
+    "SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE resolution_status = 'resolved') as resolved FROM degree_courses;"
+  );
+  const stageTotal = parseInt(stageResolvedRes?.rows?.[0]?.total || "0", 10);
+  const stageResolved = parseInt(stageResolvedRes?.rows?.[0]?.resolved || "0", 10);
+  const liveTotal = parseInt(liveResolvedRes?.rows?.[0]?.total || "0", 10);
+  const liveResolved = parseInt(liveResolvedRes?.rows?.[0]?.resolved || "0", 10);
+  const stagedResolvedCourseRate = stageTotal === 0 ? 0 : stageResolved / stageTotal;
+  const liveResolvedCourseRate = liveTotal === 0 ? 0 : liveResolved / liveTotal;
+
+  const regressionThreshold = 0.8;
+  if (liveEdgeCount > 0 && edgeCount < liveEdgeCount * regressionThreshold) {
+    errors.push(
+      `Staging validation failed: edge count declined more than 20% (live=${liveEdgeCount}, staging=${edgeCount}).`
+    );
+  }
+  if (liveTotal > 0 && stagedResolvedCourseRate < liveResolvedCourseRate * regressionThreshold) {
+    errors.push(
+      `Staging validation failed: resolved-course rate declined more than 20% (live=${(liveResolvedCourseRate * 100).toFixed(1)}%, staging=${(stagedResolvedCourseRate * 100).toFixed(1)}%).`
+    );
+  }
+
   const valid = errors.length === 0;
 
   return {
@@ -105,6 +133,9 @@ export async function validateStaging(
     liveProgramCount,
     courseCount,
     edgeCount,
+    liveEdgeCount,
+    stagedResolvedCourseRate,
+    liveResolvedCourseRate,
     errors,
     warnings,
   };

@@ -14,6 +14,7 @@ import {
 import { fixturePrograms, getProgramBySlug as getFixtureBySlug } from "@/data/fixturePrograms";
 import { CATEGORY_PALETTES } from "@/lib/graphLayout";
 import { normalizeDegreeLevel } from "@/lib/kualiParser";
+import { getCourseCodeKey, getCourseNodeId, normalizeCourseCode } from "@/lib/courseCode";
 
 let poolInstance: Pool | null = null;
 
@@ -259,12 +260,15 @@ export const getProgramBySlug = cache(
                 title: string;
                 credits: number | null;
                 is_optional: boolean;
+                resolution_status: CourseNodeData["resolutionStatus"] | null;
               }>(
                 `
-                SELECT id, source_pid, course_code, title, credits, is_optional
-                FROM program_requirement_courses
+                SELECT prc.id, prc.source_pid, prc.course_code, prc.title, prc.credits, prc.is_optional,
+                       dc.resolution_status
+                FROM program_requirement_courses prc
+                LEFT JOIN degree_courses dc ON dc.course_code = prc.course_code
                 WHERE requirement_group_id = $1
-                ORDER BY sort_order ASC;
+                ORDER BY prc.sort_order ASC;
               `,
                 [gRow.id]
               );
@@ -299,16 +303,19 @@ export const getProgramBySlug = cache(
                   description: desc,
                 });
 
-                if (!nodesMap.has(c.course_code)) {
-                  nodesMap.set(c.course_code, {
-                    id: c.course_code.replace(/\s+/g, ""),
-                    code: c.course_code,
+                const code = normalizeCourseCode(c.course_code);
+                if (!nodesMap.has(code)) {
+                  nodesMap.set(code, {
+                    id: getCourseNodeId(code),
+                    code,
                     title: c.title,
                     credits: c.credits,
                     groupCode: gRow.id,
                     groupName: gRow.title,
                     groupCategory: cat,
                     prerequisites: [],
+                    corequisites: [],
+                    resolutionStatus: c.resolution_status || "unavailable",
                   });
                 }
               }
@@ -383,19 +390,24 @@ export const getProgramBySlug = cache(
               }
             }
 
+            const requiredCourseCount = nodesMap.size;
             const targetNodesArr = Array.from(nodesMap.keys());
-            let edgesRes: { rows: Array<{ source_course_code: string; target_course_code: string; relationship_type: string; source_title: string | null; source_credits: number | null }> } = { rows: [] };
+            let edgesRes: { rows: Array<{ source_course_code: string; target_course_code: string; relationship_type: string; source_text: string | null; source_title: string | null; source_credits: number | null; source_resolution_status: CourseNodeData["resolutionStatus"] | null }> } = { rows: [] };
             
             if (targetNodesArr.length > 0) {
               edgesRes = await client.query<{
                 source_course_code: string;
                 target_course_code: string;
                 relationship_type: string;
+                source_text: string | null;
                 source_title: string | null;
                 source_credits: number | null;
+                source_resolution_status: CourseNodeData["resolutionStatus"] | null;
               }>(
                 `
-                SELECT e.source_course_code, e.target_course_code, e.relationship_type, c.title as source_title, c.credits as source_credits
+                SELECT e.source_course_code, e.target_course_code, e.relationship_type, e.source_text,
+                       c.title as source_title, c.credits as source_credits,
+                       c.resolution_status as source_resolution_status
                 FROM degree_course_edges e
                 LEFT JOIN degree_courses c ON e.source_course_code = c.course_code
                 WHERE e.target_course_code = ANY($1::text[])
@@ -406,28 +418,33 @@ export const getProgramBySlug = cache(
 
             const edges: PrerequisiteEdgeData[] = [];
             for (const eRow of edgesRes.rows) {
-              const srcId = eRow.source_course_code.replace(/\s+/g, "");
-              const tgtId = eRow.target_course_code.replace(/\s+/g, "");
+              const sourceCode = normalizeCourseCode(eRow.source_course_code);
+              const targetCode = normalizeCourseCode(eRow.target_course_code);
+              const srcId = getCourseNodeId(sourceCode);
+              const tgtId = getCourseNodeId(targetCode);
 
-              const targetNode = nodesMap.get(eRow.target_course_code);
-              let sourceNode = nodesMap.get(eRow.source_course_code);
+              const targetNode = nodesMap.get(targetCode);
+              let sourceNode = nodesMap.get(sourceCode);
 
               if (targetNode) {
                 if (!sourceNode) {
                   sourceNode = {
                     id: srcId,
-                    code: eRow.source_course_code,
+                    code: sourceCode,
                     title: eRow.source_title || "External Requirement",
                     credits: eRow.source_credits,
                     groupCode: "external",
                     groupName: "External Prerequisites",
                     groupCategory: "other",
                     prerequisites: [],
+                    corequisites: [],
+                    isExternal: true,
+                    resolutionStatus: eRow.source_resolution_status || "unavailable",
                   };
-                  nodesMap.set(eRow.source_course_code, sourceNode);
+                  nodesMap.set(sourceCode, sourceNode);
                 }
 
-                if (!targetNode.prerequisites?.includes(srcId)) {
+                if (eRow.relationship_type === "prerequisite" && !targetNode.prerequisites?.includes(srcId)) {
                   targetNode.prerequisites = [...(targetNode.prerequisites || []), srcId];
                 }
                 
@@ -442,6 +459,7 @@ export const getProgramBySlug = cache(
                   source: srcId,
                   target: tgtId,
                   type: eRow.relationship_type === "corequisite" ? "corequisite" : "prerequisite",
+                  label: eRow.source_text || undefined,
                 });
               }
             }
@@ -456,7 +474,7 @@ export const getProgramBySlug = cache(
               credential: p.credential,
               catalogYear: p.catalogYear || "2025-2026",
               totalCredits: p.totalCredits ?? null,
-              requiredCourseCount: nodes.length,
+              requiredCourseCount,
               electiveCredits: null,
               estimatedDuration: "Not available",
               sourceCatalogUrl: p.sourceCatalogUrl || "https://snhu.kuali.co",
@@ -488,6 +506,7 @@ export const searchPrograms = async (
 ): Promise<Array<{ slug: string; title: string; credential: string; degreeLevel: string; matchedText?: string }>> => {
   const q = query.trim();
   const limit = options?.limit ? Math.min(options.limit, 30) : 15;
+  const courseCodeKey = getCourseCodeKey(q);
 
   if (q.length < 2) return [];
 
@@ -517,10 +536,10 @@ export const searchPrograms = async (
       const pattern = `%${escaped}%`;
 
       let levelFilter = "";
-      const queryParams: (string | number)[] = [pattern, limit];
+      const queryParams: (string | number)[] = [pattern, courseCodeKey, limit];
       if (options?.level && options.level !== "ALL") {
         queryParams.push(options.level);
-        levelFilter = `AND p.credential ILIKE $3`;
+        levelFilter = `AND p.credential ILIKE $4`;
       }
 
       const res = await client.query<{
@@ -542,9 +561,10 @@ export const searchPrograms = async (
           OR p.slug ILIKE $1 ESCAPE '\\'
           OR prc.course_code ILIKE $1 ESCAPE '\\'
           OR prc.title ILIKE $1 ESCAPE '\\'
+          OR regexp_replace(upper(prc.course_code), '[^A-Z0-9]', '', 'g') = $2
         ) ${levelFilter}
         ORDER BY p.title ASC
-        LIMIT $2;
+        LIMIT $3;
       `,
         queryParams
       );
@@ -591,7 +611,7 @@ export const getPopularPrograms = cache(async (): Promise<DegreeProgram[]> => {
 });
 
 export const getProgramsForCourse = cache(async (courseCode: string): Promise<DegreeProgram[]> => {
-  const code = courseCode.trim();
+  const code = normalizeCourseCode(courseCode);
   if (!code) return [];
   const pool = getDbPool();
   if (!pool) {

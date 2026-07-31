@@ -60,11 +60,12 @@ describe("Production Readiness — Fixture Isolation Gate", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     process.env = originalEnv;
   });
 
   it("blocks fixture fallback in production mode when database is not connected", async () => {
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     process.env.ENABLE_PROGRAM_FIXTURES = "false";
     delete process.env.POSTGRES_URL;
 
@@ -78,7 +79,7 @@ describe("Production Readiness — Fixture Isolation Gate", () => {
   });
 
   it("allows fixture access in non-production when ENABLE_PROGRAM_FIXTURES is true", async () => {
-    process.env.NODE_ENV = "development";
+    vi.stubEnv("NODE_ENV", "development");
     process.env.ENABLE_PROGRAM_FIXTURES = "true";
     delete process.env.POSTGRES_URL;
 

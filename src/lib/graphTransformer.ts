@@ -71,10 +71,17 @@ export function identifyStartingCourses(
   nodesData: CourseNodeData[],
   edgesData: PrerequisiteEdgeData[]
 ): string[] {
-  const targets = new Set(edgesData.filter((e) => e.type !== "recommended").map((e) => e.target));
+  const targets = new Set(edgesData.filter((e) => e.type === "prerequisite").map((e) => e.target));
 
   return nodesData
-    .filter((n) => !n.isPlaceholder && !targets.has(n.id) && !targets.has(n.code))
+    .filter(
+      (n) =>
+        !n.isPlaceholder &&
+        !n.isExternal &&
+        (n.resolutionStatus || "resolved") === "resolved" &&
+        !targets.has(n.id) &&
+        !targets.has(n.code)
+    )
     .map((n) => n.code);
 }
 
@@ -85,13 +92,18 @@ export function identifyCriticalCourses(
   const outDegreeMap = new Map<string, number>();
 
   for (const e of edgesData) {
-    if (e.type !== "recommended") {
+    if (e.type === "prerequisite") {
       outDegreeMap.set(e.source, (outDegreeMap.get(e.source) || 0) + 1);
     }
   }
 
   return nodesData
-    .filter((n) => (outDegreeMap.get(n.id) || outDegreeMap.get(n.code) || 0) >= 2)
+    .filter(
+      (n) =>
+        !n.isExternal &&
+        (n.resolutionStatus || "resolved") === "resolved" &&
+        (outDegreeMap.get(n.id) || outDegreeMap.get(n.code) || 0) >= 2
+    )
     .map((n) => n.code);
 }
 
@@ -108,7 +120,7 @@ export function calculateLongestKnownPath(
   }
 
   for (const e of edgesData) {
-    if (adj.has(e.source) && inDegree.has(e.target)) {
+    if (e.type === "prerequisite" && adj.has(e.source) && inDegree.has(e.target)) {
       adj.get(e.source)!.push(e.target);
       inDegree.set(e.target, (inDegree.get(e.target) || 0) + 1);
     }
@@ -170,10 +182,14 @@ export function buildDegreeGraph(
   rawEdges: PrerequisiteEdgeData[]
 ): CompleteDegreeGraph {
   const nodesData = deduplicateCourseNodes(rawNodes);
-  const startingCourses = identifyStartingCourses(nodesData, rawEdges);
-  const criticalCourses = identifyCriticalCourses(nodesData, rawEdges);
-  const { longestPath, longestPathLength } = calculateLongestKnownPath(nodesData, rawEdges);
-  const { hasCycle, cycleNodes } = detectCycles(nodesData, rawEdges);
+  const analyzableNodes = nodesData.filter(
+    (node) => !node.isExternal && (node.resolutionStatus || "resolved") === "resolved"
+  );
+  const prerequisiteEdges = rawEdges.filter((edge) => edge.type === "prerequisite");
+  const startingCourses = identifyStartingCourses(analyzableNodes, prerequisiteEdges);
+  const criticalCourses = identifyCriticalCourses(analyzableNodes, prerequisiteEdges);
+  const { longestPath, longestPathLength } = calculateLongestKnownPath(analyzableNodes, prerequisiteEdges);
+  const { hasCycle, cycleNodes } = detectCycles(analyzableNodes, prerequisiteEdges);
 
   const startingSet = new Set(startingCourses);
   const criticalSet = new Set(criticalCourses);
@@ -197,7 +213,7 @@ export function buildDegreeGraph(
     longestPathLength,
     hasCycle,
     cycleNodes,
-    totalKnownCourses: nodesData.filter((n) => !n.isPlaceholder).length,
+    totalKnownCourses: analyzableNodes.filter((n) => !n.isPlaceholder).length,
   };
 
   return { nodes, edges, insights };
