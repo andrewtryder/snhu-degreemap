@@ -10,6 +10,7 @@ import { kualiConfig } from "@/config/kualiConfig";
 
 export async function runProgramSync(options: SyncOptions = {}): Promise<SyncResult> {
   const catalogId = options.catalogId || kualiConfig.catalogId;
+  const catalogYearLabel = process.env.KUALI_CATALOG_YEAR_LABEL || "2025-2026";
   const batchSize = options.batchSize || 10;
   const maxConcurrency = options.maxConcurrency || 3;
   const syncId = randomUUID();
@@ -26,7 +27,7 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
         UPDATE program_sync_state
         SET status = 'in_progress', sync_id = $1, started_at = NOW(),
             lease_expires_at = $2, last_error = NULL
-        WHERE id = 'program_sync' AND (status != 'in_progress' OR lease_expires_at < NOW() OR $3 = true)
+        WHERE id = 'program_sync' AND (status != 'in_progress' OR lease_expires_at IS NULL OR lease_expires_at < NOW() OR $3 = true)
         RETURNING *;
         `,
         [syncId, leaseExpiresAt, !!options.ignoreLease]
@@ -46,20 +47,31 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
         };
       }
 
-      // Ensure catalog entry exists
+      // 2. Catalog Upsert
       const catalogDbId = `cat_${catalogId}`;
       await client.query(
         `
         INSERT INTO catalogs (id, external_catalog_id, title, year_label, source_url, is_active, synced_at)
-        VALUES ($1, $2, 'SNHU Academic Catalog', '2025-2026', $3, true, NOW())
-        ON CONFLICT (id) DO NOTHING;
+        VALUES ($1, $2, 'SNHU Academic Catalog', $3, $4, true, NOW())
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          year_label = EXCLUDED.year_label,
+          source_url = EXCLUDED.source_url,
+          is_active = EXCLUDED.is_active,
+          synced_at = NOW();
       `,
-        [catalogDbId, catalogId, `${kualiConfig.baseUrl}/api/v1/catalog/programs/${catalogId}`]
+        [catalogDbId, catalogId, catalogYearLabel, `${kualiConfig.baseUrl}/api/v1/catalog/programs/${catalogId}`]
       );
 
       // 3. Fetch program list & Snapshot PIDs
       console.log(`[Program Sync] Fetching program list for catalog ${catalogId}...`);
       const rawProgramList = await fetchKualiProgramList(catalogId);
+
+      // Reject empty program list before calculating skip rates or modifying staging data
+      if (!rawProgramList || rawProgramList.length === 0) {
+        throw new Error("Kuali program list returned zero items. Aborting synchronization prior to staging mutation.");
+      }
+
       const uniquePids = Array.from(new Set(rawProgramList.map((p) => p.pid).filter((pid): pid is string => Boolean(pid))));
 
       console.log(`[Program Sync] Discovered ${uniquePids.length} programs in Kuali catalog.`);
@@ -72,14 +84,14 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
       await client.query("DELETE FROM program_sync_items WHERE sync_id = $1;", [syncId]);
       for (let i = 0; i < uniquePids.length; i++) {
         await client.query(
-          "INSERT INTO program_sync_items (sync_id, ordinal, source_pid) VALUES ($1, $2, $3);",
+          "INSERT INTO program_sync_items (sync_id, ordinal, source_pid, status) VALUES ($1, $2, $3, 'pending');",
           [syncId, i, uniquePids[i]]
         );
       }
 
       await client.query(
-        "UPDATE program_sync_state SET expected_count = $1, cursor = 0, imported_count = 0, skipped_count = 0, failed_count = 0 WHERE id = 'program_sync';",
-        [uniquePids.length]
+        "UPDATE program_sync_state SET expected_count = $1, cursor = 0, imported_count = 0, skipped_count = 0, failed_count = 0 WHERE id = 'program_sync' AND sync_id = $2;",
+        [uniquePids.length, syncId]
       );
 
       // 4. Batch process program details
@@ -108,6 +120,10 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
           if (res.success && res.program) {
             await persistProgramToStaging(client, res.program, catalogDbId);
             importedCount++;
+            await client.query(
+              "UPDATE program_sync_items SET status = 'imported', processed_at = NOW() WHERE sync_id = $1 AND source_pid = $2;",
+              [syncId, res.pid]
+            );
 
             // Collect course references
             const refs = extractCourseReferences(res.program);
@@ -119,17 +135,30 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
           } else if (res.error === "Not found") {
             // Skipped non-program catalog entry or archived item
             skippedCount++;
+            await client.query(
+              "UPDATE program_sync_items SET status = 'skipped', reason = 'Not found (404)', processed_at = NOW() WHERE sync_id = $1 AND source_pid = $2;",
+              [syncId, res.pid]
+            );
           } else {
             failedCount++;
             console.warn(`[Program Sync Warning] Failed to fetch/parse PID ${res.pid}: ${res.error}`);
+            await client.query(
+              "UPDATE program_sync_items SET status = 'failed', reason = $3, processed_at = NOW() WHERE sync_id = $1 AND source_pid = $2;",
+              [syncId, res.pid, res.error || "Unknown error"]
+            );
           }
         }
 
         const currentCursor = i + batchPids.length;
-        await client.query(
-          "UPDATE program_sync_state SET cursor = $1, imported_count = $2, skipped_count = $3, failed_count = $4 WHERE id = 'program_sync';",
-          [currentCursor, importedCount, skippedCount, failedCount]
+        const renewedLease = new Date(Date.now() + 15 * 60 * 1000);
+        const updateRes = await client.query(
+          "UPDATE program_sync_state SET cursor = $1, imported_count = $2, skipped_count = $3, failed_count = $4, lease_expires_at = $5 WHERE id = 'program_sync' AND sync_id = $6;",
+          [currentCursor, importedCount, skippedCount, failedCount, renewedLease, syncId]
         );
+
+        if (updateRes.rowCount === 0) {
+          throw new Error(`Sync lease ownership lost for syncId ${syncId} during program batch phase.`);
+        }
       }
 
       // 5. Fetch referenced course details & edges
@@ -139,13 +168,13 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
         pid: ref.pid || ref.code,
         code: ref.code,
         title: ref.code,
-        credits: 3,
+        credits: null,
         description: "",
         prerequisites: [],
         corequisites: [],
       }));
 
-      // Fetch additional Kuali course detail metadata if PID is present
+      // Fetch additional Kuali course detail metadata if PID is present with periodic lease renewal
       for (let i = 0; i < courseRefs.length; i += maxConcurrency) {
         const chunk = courseRefs.slice(i, i + maxConcurrency);
         await Promise.all(
@@ -158,11 +187,23 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
                   parsedCourses[i + idx] = detail;
                 }
               } catch {
-                // fallback retained
+                // Course detail fetch failure retained without silent fallback
               }
             }
           })
         );
+
+        // Periodically renew lease during large course detail phases
+        if (i > 0 && i % 30 === 0) {
+          const renewedLease = new Date(Date.now() + 15 * 60 * 1000);
+          const renewRes = await client.query(
+            "UPDATE program_sync_state SET lease_expires_at = $1 WHERE id = 'program_sync' AND sync_id = $2;",
+            [renewedLease, syncId]
+          );
+          if (renewRes.rowCount === 0) {
+            throw new Error(`Sync lease ownership lost for syncId ${syncId} during course detail phase.`);
+          }
+        }
       }
 
       // Persist courses and edges to staging
@@ -175,12 +216,13 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
 
       const processedCount = importedCount + skippedCount + failedCount;
       if (processedCount !== uniquePids.length) {
-        throw new Error(`Sync snapshot mismatch: processed ${processedCount} but expected ${uniquePids.length}`);
+        throw new Error(`Sync snapshot accounting mismatch: processed ${processedCount} but expected ${uniquePids.length}`);
       }
 
       const skipRate = skippedCount / uniquePids.length;
-      if (skipRate > 0.2) {
-        throw new Error(`Skipped program rate too high: ${(skipRate * 100).toFixed(1)}% (${skippedCount}/${uniquePids.length})`);
+      const maxSkipRate = 0.01; // 1% maximum skip threshold
+      if (skipRate > maxSkipRate) {
+        throw new Error(`Skipped program rate too high: ${(skipRate * 100).toFixed(1)}% (${skippedCount}/${uniquePids.length}). Exceeds 1% max skip threshold.`);
       }
 
       const validation = await validateStaging(
@@ -193,8 +235,8 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
       if (!validation.valid) {
         const errorMsg = `Staging validation failed: ${validation.errors.join("; ")}`;
         await client.query(
-          "UPDATE program_sync_state SET status = 'error', last_error = $1 WHERE id = 'program_sync';",
-          [errorMsg]
+          "UPDATE program_sync_state SET status = 'error', last_error = $1 WHERE id = 'program_sync' AND sync_id = $2;",
+          [errorMsg, syncId]
         );
         return {
           action: "error",
@@ -211,7 +253,16 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
       }
 
       // 7. Atomic Promotion to Live Database
-      console.log(`[Program Sync] Promoting staging tables to live database...`);
+      console.log(`[Program Sync] Renewing lease and promoting staging tables to live database...`);
+      const prePromoteLease = new Date(Date.now() + 15 * 60 * 1000);
+      const checkOwnerRes = await client.query(
+        "UPDATE program_sync_state SET lease_expires_at = $1 WHERE id = 'program_sync' AND sync_id = $2;",
+        [prePromoteLease, syncId]
+      );
+      if (checkOwnerRes.rowCount === 0) {
+        throw new Error(`Sync lease ownership lost for syncId ${syncId} immediately prior to promotion.`);
+      }
+
       await promoteStagingToLive(client);
 
       const nextDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
@@ -220,9 +271,9 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
         UPDATE program_sync_state
         SET status = 'idle', completed_at = NOW(), next_due_at = $1,
             lease_expires_at = NULL, last_error = NULL
-        WHERE id = 'program_sync';
+        WHERE id = 'program_sync' AND sync_id = $2;
       `,
-        [nextDue]
+        [nextDue, syncId]
       );
 
       console.log(`[Program Sync] Synchronization and atomic promotion completed successfully!`);
@@ -249,8 +300,8 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
     try {
       const pool = getDbPool();
       await pool.query(
-        "UPDATE program_sync_state SET status = 'error', last_error = $1 WHERE id = 'program_sync';",
-        [errorMsg]
+        "UPDATE program_sync_state SET status = 'error', last_error = $1 WHERE id = 'program_sync' AND sync_id = $2;",
+        [errorMsg, syncId]
       );
     } catch {
       // ignore secondary error

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import * as cheerio from "cheerio";
-import { GroupCategory } from "@/types/program";
+import { GroupCategory, DegreeLevel } from "@/types/program";
 import {
   isRawProgramListItem,
   isRawProgramDetail,
@@ -42,6 +42,22 @@ export function createProgramSlug(title: string, credential?: string): string {
   return slugFromTitle;
 }
 
+export function normalizeDegreeLevel(credential: string): DegreeLevel {
+  const c = credential.toUpperCase();
+  if (c.includes("RN TO BSN") || c.includes("RN-TO-BSN")) return "RN to BSN";
+  if (c.includes("MBA") || c.includes("MASTER OF BUSINESS")) return "MBA";
+  if (c.includes("MASTER OF ARTS") || c.includes(" MA ") || c.endsWith(" MA")) return "MA";
+  if (c.includes("MASTER OF SCIENCE") || c.includes(" MS ") || c.endsWith(" MS") || c.includes("MASTER")) return "MS";
+  if (c.includes("BACHELOR OF ARTS") || c.includes(" BA ") || c.endsWith(" BA")) return "BA";
+  if (c.includes("BACHELOR OF SCIENCE") || c.includes(" BS ") || c.endsWith(" BS") || c.includes("BACHELOR")) return "BS";
+  if (c.includes("ASSOCIATE OF ARTS") || c.includes(" AA ") || c.endsWith(" AA")) return "AA";
+  if (c.includes("ASSOCIATE OF SCIENCE") || c.includes(" AS ") || c.endsWith(" AS") || c.includes("ASSOCIATE")) return "AS";
+  if (c.includes("UNDERGRADUATE CERTIFICATE")) return "Undergraduate Certificate";
+  if (c.includes("GRADUATE CERTIFICATE")) return "Graduate Certificate";
+  if (c.includes("CERTIF")) return "Undergraduate Certificate";
+  return "Other";
+}
+
 export function normalizeCredential(title: string, rawTypeName?: string): string {
   const t = title.toUpperCase();
   if (t.includes("RN TO BSN") || t.includes("RN-TO-BSN")) {
@@ -59,7 +75,7 @@ export function normalizeCredential(title: string, rawTypeName?: string): string
   if (t.includes("(MS)") || t.includes("MASTER OF SCIENCE") || rawTypeName?.includes("Master")) {
     return "Master of Science";
   }
-  return rawTypeName || "Bachelor's Degree";
+  return rawTypeName || "Degree Program";
 }
 
 function mapTitleToGroupCategory(title: string): GroupCategory {
@@ -302,16 +318,19 @@ export function extractCourseReferences(program: CatalogProgram): Array<{ code: 
   return Array.from(refs.values());
 }
 
-export function calculateKnownCreditSummary(groups: RequirementGroupDomain[]): number {
+export function calculateKnownCreditSummary(groups: RequirementGroupDomain[]): number | null {
   let sum = 0;
   for (const group of groups) {
-    if (group.minimumCredits && group.minimumCredits > 0) {
+    if (typeof group.minimumCredits === "number" && group.minimumCredits > 0) {
       sum += group.minimumCredits;
     } else {
       for (const cr of group.courseRequirements) {
-        sum += cr.credits || 0;
+        if (cr.credits == null) {
+          return null; // Partial sum containing unknown components
+        }
+        sum += cr.credits;
       }
     }
   }
-  return sum;
+  return sum > 0 ? sum : null;
 }

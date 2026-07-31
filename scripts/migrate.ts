@@ -239,6 +239,10 @@ export async function runMigrations(connectionString?: string) {
       ALTER TABLE degree_courses ALTER COLUMN credits DROP DEFAULT;
       ALTER TABLE degree_courses_stage ALTER COLUMN credits DROP NOT NULL;
       ALTER TABLE degree_courses_stage ALTER COLUMN credits DROP DEFAULT;
+
+      ALTER TABLE program_sync_items ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+      ALTER TABLE program_sync_items ADD COLUMN IF NOT EXISTS reason TEXT;
+      ALTER TABLE program_sync_items ADD COLUMN IF NOT EXISTS processed_at TIMESTAMPTZ;
     `);
 
     // 9. Sync Items Snapshot Table
@@ -247,6 +251,9 @@ export async function runMigrations(connectionString?: string) {
         sync_id UUID NOT NULL,
         ordinal INTEGER NOT NULL,
         source_pid TEXT NOT NULL,
+        status TEXT DEFAULT 'pending',
+        reason TEXT,
+        processed_at TIMESTAMPTZ,
         PRIMARY KEY (sync_id, ordinal),
         UNIQUE (sync_id, source_pid)
       );
@@ -265,6 +272,7 @@ export async function runMigrations(connectionString?: string) {
       CREATE INDEX IF NOT EXISTS programs_stage_slug_idx ON programs_stage (slug);
       CREATE INDEX IF NOT EXISTS programs_title_idx ON programs (title);
       CREATE INDEX IF NOT EXISTS program_req_courses_code_idx ON program_requirement_courses (course_code);
+      CREATE INDEX IF NOT EXISTS program_req_courses_title_idx ON program_requirement_courses (title);
       CREATE INDEX IF NOT EXISTS program_req_courses_group_idx ON program_requirement_courses (requirement_group_id);
       CREATE INDEX IF NOT EXISTS program_req_groups_prog_idx ON program_requirement_groups (program_id);
       CREATE INDEX IF NOT EXISTS degree_edges_source_idx ON degree_course_edges (source_course_code);

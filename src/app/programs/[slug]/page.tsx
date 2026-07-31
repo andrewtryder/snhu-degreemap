@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 
 export const dynamicParams = true;
-export const revalidate = 3600;
+export const revalidate = false;
 
 export async function generateStaticParams() {
   return [];
@@ -196,7 +196,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Total Credits"
-          value={`${program.totalCredits} cr`}
+          value={program.totalCredits == null ? "Not available" : `${program.totalCredits} cr`}
           subtext="Degree completion target"
           icon={<GraduationCapIcon className="h-5 w-5 text-primary" />}
         />
@@ -321,7 +321,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
               {longestPath.join(" → ")}
             </p>
             <p className="text-[11px] text-on-surface-variant">
-              Requires {longestPathLength} sequential terms to complete.
+              Longest known prerequisite chain: {longestPathLength} courses
             </p>
           </Card>
         </div>
@@ -360,7 +360,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
                       {group.title}
                     </Badge>
                     <span className="text-xs font-semibold text-on-surface-variant">
-                      {group.totalCredits} Total Credits
+                      {group.totalCredits == null ? "Credits not specified" : `${group.totalCredits} Total Credits`}
                     </span>
                   </div>
                   {group.description && (
@@ -387,7 +387,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
                         )}
                       </div>
                       <span className="font-mono font-semibold text-primary shrink-0">
-                        {item.credits} Credits
+                        {item.credits == null ? "N/A" : `${item.credits} Credits`}
                       </span>
                     </div>
                   ))

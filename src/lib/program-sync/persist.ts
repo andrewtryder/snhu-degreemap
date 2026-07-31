@@ -8,7 +8,7 @@ export async function persistProgramToStaging(
   catalogDbId: string
 ): Promise<void> {
   const programDbId = `prog_${program.sourcePid}`;
-  const totalCredits = Number(program.totalCredits) || 120;
+  const totalCredits = typeof program.totalCredits === "number" ? program.totalCredits : null;
 
   await client.query(
     `
@@ -95,7 +95,7 @@ async function persistGroupToStaging(
   let cOrder = 0;
   for (const cr of group.courseRequirements) {
     const crId = `cr_${groupId}_${cOrder}`;
-    const credits = Number(cr.credits) || 3;
+    const credits = typeof cr.credits === "number" ? cr.credits : null;
     await client.query(
       `
       INSERT INTO program_requirement_courses_stage (
@@ -142,7 +142,7 @@ export async function persistCoursesToStaging(
   courses: NormalizedCourseDetails[]
 ): Promise<void> {
   for (const course of courses) {
-    const credits = Number(course.credits) || 3;
+    const credits = typeof course.credits === "number" ? course.credits : null;
     await client.query(
       `
       INSERT INTO degree_courses_stage (

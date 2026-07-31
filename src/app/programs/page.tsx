@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { getPrograms, getCatalogYears } from "@/lib/serverData";
 import { GraduationCapIcon, ArrowRightIcon } from "lucide-react";
 
-export const revalidate = 3600; // Server-side revalidation
+export const revalidate = false; // Tag-based invalidation
 
 async function ProgramsContent() {
   const programs = await getPrograms();
@@ -61,7 +61,7 @@ async function ProgramsContent() {
             </div>
 
             <div className="border-t border-surface-variant pt-3 flex items-center justify-between text-xs text-on-surface-variant">
-              <span>{program.totalCredits} Credits • {program.requiredCourseCount} Courses</span>
+              <span>{program.totalCredits == null ? "N/A Credits" : `${program.totalCredits} Credits`} • {program.requiredCourseCount} Courses</span>
               <Link
                 href={`/programs/${program.slug}`}
                 className="font-semibold text-primary hover:underline flex items-center gap-1"

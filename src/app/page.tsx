@@ -15,6 +15,8 @@ import {
   AlertTriangleIcon,
 } from "lucide-react";
 
+export const revalidate = false;
+
 export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -134,7 +136,7 @@ export default function HomePage() {
                   </div>
 
                   <div className="border-t border-surface-variant pt-3 flex items-center justify-between text-xs text-on-surface-variant">
-                    <span>{program.totalCredits} Total Credits</span>
+                    <span>{program.totalCredits == null ? "N/A Total Credits" : `${program.totalCredits} Total Credits`}</span>
                     <Link
                       href={`/programs/${program.slug}`}
                       className="font-semibold text-primary hover:underline flex items-center gap-1"

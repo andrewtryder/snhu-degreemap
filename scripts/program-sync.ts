@@ -35,6 +35,15 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(JSON.stringify({ action: "error", status: "error", error: (err as Error).message }));
+  const errObj = {
+    action: "error",
+    status: "error",
+    importedCount: 0,
+    skippedCount: 0,
+    failedCount: 1,
+    promoted: false,
+    error: (err as Error).message,
+  };
+  console.log(JSON.stringify(errObj));
   process.exit(1);
 });

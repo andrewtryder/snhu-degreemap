@@ -1,20 +1,48 @@
 import { kualiConfig } from "@/config/kualiConfig";
 import { RawKualiProgramListItem, RawKualiProgramDetail, RawKualiCourseItem } from "@/types/kualiRaw";
 
+const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+
+function getBackoffDelay(attempt: number, response?: Response): number {
+  if (response) {
+    const retryAfter = response.headers.get("Retry-After");
+    if (retryAfter) {
+      const seconds = parseInt(retryAfter, 10);
+      if (!isNaN(seconds) && seconds > 0) {
+        return seconds * 1000;
+      }
+    }
+  }
+  const base = 300 * Math.pow(2, attempt);
+  const jitter = Math.floor(Math.random() * 100);
+  return base + jitter;
+}
+
 export async function fetchKualiProgramList(catalogId = kualiConfig.catalogId): Promise<RawKualiProgramListItem[]> {
   const url = `${kualiConfig.baseUrl}/api/v1/catalog/programs/${catalogId}?q=`;
-  const response = await fetch(url, {
-    headers: { "User-Agent": kualiConfig.userAgent, Accept: "application/json" },
-    signal: AbortSignal.timeout(15000),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { "User-Agent": kualiConfig.userAgent, Accept: "application/json" },
+      signal: AbortSignal.timeout(kualiConfig.timeoutMs),
+    });
+  } catch (err) {
+    throw new Error(`Failed network request for program list: ${(err as Error).message}`);
+  }
 
   if (!response.ok) {
     throw new Error(`Failed to fetch program list from Kuali: HTTP ${response.status}`);
   }
 
-  const data = await response.json();
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("Invalid JSON response for program list");
+  }
+
   if (!Array.isArray(data)) {
-    throw new Error("Invalid program list response: expected array");
+    throw new Error("Invalid program list response structure: expected array");
   }
 
   return data as RawKualiProgramListItem[];
@@ -27,39 +55,52 @@ export async function fetchKualiProgramDetail(
 ): Promise<RawKualiProgramDetail | null> {
   const url = `${kualiConfig.baseUrl}/api/v1/catalog/program/${catalogId}/${pid}`;
 
+  let lastError: Error | null = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const response = await fetch(url, {
         headers: { "User-Agent": kualiConfig.userAgent, Accept: "application/json" },
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(kualiConfig.timeoutMs),
       });
 
       if (response.ok) {
-        return (await response.json()) as RawKualiProgramDetail;
+        try {
+          return (await response.json()) as RawKualiProgramDetail;
+        } catch {
+          throw new Error(`Invalid JSON structure for program detail PID ${pid}`);
+        }
       }
 
       if (response.status === 404) {
-        return null;
+        return null; // Confirmed 404
       }
 
-      if (response.status === 429 || response.status === 503) {
-        const retryAfter = response.headers.get("Retry-After");
-        if (retryAfter) {
-          const delaySeconds = parseInt(retryAfter, 10);
-          if (!isNaN(delaySeconds) && delaySeconds > 0) {
-            await new Promise((res) => setTimeout(res, delaySeconds * 1000));
-            continue; // Skip default backoff below if Retry-After is honored
-          }
+      if (RETRYABLE_STATUSES.has(response.status)) {
+        lastError = new Error(`Kuali program detail endpoint returned HTTP ${response.status} (attempt ${attempt + 1}/${retries + 1})`);
+        if (attempt < retries) {
+          const delay = getBackoffDelay(attempt, response);
+          await new Promise((res) => setTimeout(res, delay));
+          continue;
         }
+        throw lastError;
       }
-    } catch (err) {
-      if (attempt === retries) throw err;
-    }
 
-    await new Promise((res) => setTimeout(res, 300 * (attempt + 1)));
+      // Non-retryable HTTP 4xx (400, 401, 403, etc.)
+      throw new Error(`Kuali program detail terminal failure for PID ${pid}: HTTP ${response.status}`);
+    } catch (err) {
+      lastError = err as Error;
+      if (lastError.message.includes("terminal failure")) throw lastError;
+
+      if (attempt < retries) {
+        const delay = getBackoffDelay(attempt);
+        await new Promise((res) => setTimeout(res, delay));
+      } else {
+        throw lastError;
+      }
+    }
   }
 
-  return null;
+  throw lastError || new Error(`Exhausted retries fetching program detail PID ${pid}`);
 }
 
 export async function fetchKualiCourseDetail(
@@ -69,37 +110,49 @@ export async function fetchKualiCourseDetail(
 ): Promise<RawKualiCourseItem | null> {
   const url = `${kualiConfig.baseUrl}/api/v1/catalog/course/${catalogId}/${pid}`;
 
+  let lastError: Error | null = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const response = await fetch(url, {
         headers: { "User-Agent": kualiConfig.userAgent, Accept: "application/json" },
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(kualiConfig.timeoutMs),
       });
 
       if (response.ok) {
-        return (await response.json()) as RawKualiCourseItem;
+        try {
+          return (await response.json()) as RawKualiCourseItem;
+        } catch {
+          throw new Error(`Invalid JSON structure for course detail PID ${pid}`);
+        }
       }
 
       if (response.status === 404) {
         return null;
       }
 
-      if (response.status === 429 || response.status === 503) {
-        const retryAfter = response.headers.get("Retry-After");
-        if (retryAfter) {
-          const delaySeconds = parseInt(retryAfter, 10);
-          if (!isNaN(delaySeconds) && delaySeconds > 0) {
-            await new Promise((res) => setTimeout(res, delaySeconds * 1000));
-            continue;
-          }
+      if (RETRYABLE_STATUSES.has(response.status)) {
+        lastError = new Error(`Kuali course detail endpoint returned HTTP ${response.status} (attempt ${attempt + 1}/${retries + 1})`);
+        if (attempt < retries) {
+          const delay = getBackoffDelay(attempt, response);
+          await new Promise((res) => setTimeout(res, delay));
+          continue;
         }
+        throw lastError;
       }
-    } catch (err) {
-      if (attempt === retries) throw err;
-    }
 
-    await new Promise((res) => setTimeout(res, 300 * (attempt + 1)));
+      throw new Error(`Kuali course detail terminal failure for PID ${pid}: HTTP ${response.status}`);
+    } catch (err) {
+      lastError = err as Error;
+      if (lastError.message.includes("terminal failure")) throw lastError;
+
+      if (attempt < retries) {
+        const delay = getBackoffDelay(attempt);
+        await new Promise((res) => setTimeout(res, delay));
+      } else {
+        throw lastError;
+      }
+    }
   }
 
-  return null;
+  throw lastError || new Error(`Exhausted retries fetching course detail PID ${pid}`);
 }
