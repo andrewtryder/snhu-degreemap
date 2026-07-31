@@ -26,7 +26,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/dagre": "^0.7.52",
-    "@types/dotenv": "^6.1.1",
+    "@types/dotenv": "^8.2.3",
     "@types/node": "^24.13.2",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
