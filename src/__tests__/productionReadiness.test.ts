@@ -14,7 +14,7 @@ describe("Production Readiness — Credential Normalization & Academic Data Safe
     expect(normalizeDegreeLevel("Bachelor of Science in Nursing (RN to BSN)")).toBe("RN to BSN");
     expect(normalizeDegreeLevel("Graduate Certificate in Data Analytics")).toBe("Graduate Certificate");
     expect(normalizeDegreeLevel("Undergraduate Certificate in Coding")).toBe("Undergraduate Certificate");
-    expect(normalizeDegreeLevel("Custom Certification Program")).toBe("Undergraduate Certificate");
+    expect(normalizeDegreeLevel("Custom Certification Program")).toBe("Other");
     expect(normalizeDegreeLevel("Diploma of Advanced Studies")).toBe("Other");
   });
 
