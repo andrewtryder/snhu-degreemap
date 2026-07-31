@@ -1,0 +1,31 @@
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import MethodologyPage from "@/app/methodology/page";
+import DataStatusPage from "@/app/data-status/page";
+import AboutPage from "@/app/about/page";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+describe("Trust & Methodology Pages", () => {
+  it("renders Data Methodology documentation page", () => {
+    render(<MethodologyPage />);
+    expect(screen.getByRole("heading", { name: /Data Processing & Graph Analysis Methodology/i })).toBeInTheDocument();
+    expect(screen.getByText(/Zero Requirement Invention/i)).toBeInTheDocument();
+  });
+
+  it("renders Data Status health dashboard page", async () => {
+    const page = await DataStatusPage();
+    render(page);
+
+    expect(screen.getByRole("heading", { name: /Catalog Synchronization Status/i })).toBeInTheDocument();
+    expect(screen.getByText("Computer Science")).toBeInTheDocument();
+  });
+
+  it("renders About Page with trademark and unofficial disclaimers", () => {
+    render(<AboutPage />);
+    expect(screen.getByRole("heading", { name: /About SNHU Degree Map/i })).toBeInTheDocument();
+    expect(screen.getByText(/Trademark & Unofficial Status Disclaimer/i)).toBeInTheDocument();
+  });
+});

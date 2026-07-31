@@ -1,0 +1,338 @@
+"use client";
+
+import React, { useState, useMemo, useCallback } from "react";
+import {
+  ReactFlow,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+  type Node,
+  type Edge,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { CourseNodeData, PrerequisiteEdgeData, GroupCategory } from "@/types/program";
+import { layoutDegreeGraph } from "@/lib/graphLayout";
+import { buildDegreeGraph } from "@/lib/graphTransformer";
+import { downloadGraphSvg, triggerPrintDegreeMap } from "@/lib/exportGraph";
+import { CustomCourseNode } from "./CustomCourseNode";
+import { CourseDetailDrawer } from "./CourseDetailDrawer";
+import { SearchInput } from "@/components/ui/SearchInput";
+import { Button } from "@/components/ui/Button";
+import {
+  FilterIcon,
+  DownloadIcon,
+  ListIcon,
+  Maximize2Icon,
+  Minimize2Icon,
+  PrinterIcon,
+  SparklesIcon,
+  ZapIcon,
+} from "lucide-react";
+
+const nodeTypes = {
+  courseNode: CustomCourseNode,
+};
+
+export interface DegreeMapGraphProps {
+  nodesData: CourseNodeData[];
+  edgesData: PrerequisiteEdgeData[];
+  programTitle: string;
+  catalogYear?: string;
+  sourceName?: string;
+  onToggleListView?: () => void;
+  className?: string;
+}
+
+export function DegreeMapGraph({
+  nodesData,
+  edgesData,
+  programTitle,
+  catalogYear = "2025-2026",
+  sourceName = "SNHU Academic Catalog",
+  onToggleListView,
+  className = "h-[650px]",
+}: DegreeMapGraphProps) {
+  const [selectedGroup, setSelectedGroup] = useState<GroupCategory | "all">("all");
+  const [mapSearch, setMapSearch] = useState<string>("");
+  const [selectedCourse, setSelectedCourse] = useState<CourseNodeData | null>(null);
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
+  const [highlightMode, setHighlightMode] = useState<"none" | "starting" | "critical">("none");
+
+  // Run graph transformer analysis
+  const fullGraph = useMemo(() => buildDegreeGraph(nodesData, edgesData), [nodesData, edgesData]);
+
+  const { nodes: initialNodes, edges: initialEdges } = useMemo(
+    () => layoutDegreeGraph(nodesData, edgesData),
+    [nodesData, edgesData]
+  );
+
+  const [nodes, , onNodesChange] = useNodesState<Node>(initialNodes);
+  const [edges, , onEdgesChange] = useEdgesState<Edge>(initialEdges);
+
+  const startingSet = useMemo(() => new Set(fullGraph.insights.startingCourses), [fullGraph]);
+  const criticalSet = useMemo(() => new Set(fullGraph.insights.criticalCourses), [fullGraph]);
+
+  // Apply highlight & filter states to graph nodes
+  const processedNodes = useMemo(() => {
+    return nodes.map((node) => {
+      const course = node.data as unknown as CourseNodeData;
+      const matchesSearch =
+        mapSearch.trim() === "" ||
+        course.code.toLowerCase().includes(mapSearch.toLowerCase()) ||
+        course.title.toLowerCase().includes(mapSearch.toLowerCase());
+
+      const matchesGroup = selectedGroup === "all" || course.groupCategory === selectedGroup;
+
+      let isHighlighted = Boolean(mapSearch.trim() && matchesSearch);
+      if (highlightMode === "starting" && startingSet.has(course.code)) {
+        isHighlighted = true;
+      } else if (highlightMode === "critical" && criticalSet.has(course.code)) {
+        isHighlighted = true;
+      }
+
+      const isFilteredOut =
+        !matchesGroup ||
+        (Boolean(mapSearch.trim()) && !matchesSearch) ||
+        (highlightMode === "starting" && !startingSet.has(course.code)) ||
+        (highlightMode === "critical" && !criticalSet.has(course.code));
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          isHighlighted,
+          isFilteredOut,
+        },
+      };
+    });
+  }, [nodes, mapSearch, selectedGroup, highlightMode, startingSet, criticalSet]);
+
+  const onNodeClick = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      const course = nodesData.find((c) => c.id === node.id);
+      if (course) {
+        setSelectedCourse(course);
+      }
+    },
+    [nodesData]
+  );
+
+  const handleExportSvg = () => {
+    downloadGraphSvg({
+      programTitle,
+      catalogYear,
+      sourceName,
+      nodes: nodesData,
+      edges: edgesData,
+    });
+  };
+
+  const handlePrint = () => {
+    triggerPrintDegreeMap({
+      programTitle,
+      catalogYear,
+      sourceName,
+      nodes: nodesData,
+      edges: edgesData,
+    });
+  };
+
+  const containerClass = isFullScreen
+    ? "fixed inset-0 z-50 flex flex-col bg-background p-4 sm:p-6"
+    : "flex flex-col gap-3";
+
+  const graphHeightClass = isFullScreen ? "flex-1 h-full min-h-[500px]" : className;
+
+  return (
+    <div className={containerClass}>
+      {/* Map Control Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface-variant bg-surface-container-low p-3 shadow-xs">
+        <div className="flex flex-1 flex-wrap items-center gap-2 min-w-[280px]">
+          <div className="w-full sm:w-64">
+            <SearchInput
+              value={mapSearch}
+              onChange={setMapSearch}
+              placeholder="Search map (e.g. CS 300)..."
+              ariaLabel="Search courses in degree map"
+            />
+          </div>
+
+          {/* Group Category Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+            <span className="text-xs font-semibold text-on-surface-variant flex items-center gap-1">
+              <FilterIcon className="h-3.5 w-3.5" /> Group:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedGroup("all")}
+              className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                selectedGroup === "all"
+                  ? "bg-primary text-on-primary"
+                  : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+              }`}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedGroup("gened")}
+              className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                selectedGroup === "gened"
+                  ? "bg-[#003087] text-white"
+                  : "bg-[#dbe1ff] text-[#001d59] hover:opacity-80"
+              }`}
+            >
+              GenEd
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedGroup("core")}
+              className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                selectedGroup === "core"
+                  ? "bg-[#004112] text-white"
+                  : "bg-[#e8f5e9] text-[#002908] hover:opacity-80"
+              }`}
+            >
+              Core
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedGroup("major")}
+              className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                selectedGroup === "major"
+                  ? "bg-[#7e22ce] text-white"
+                  : "bg-[#f3e8ff] text-[#581c87] hover:opacity-80"
+              }`}
+            >
+              Major
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedGroup("elective")}
+              className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                selectedGroup === "elective"
+                  ? "bg-[#d97706] text-white"
+                  : "bg-[#fef3c7] text-[#78350f] hover:opacity-80"
+              }`}
+            >
+              Electives
+            </button>
+          </div>
+
+          {/* Quick Highlight Filter Modes */}
+          <div className="flex items-center gap-1 border-l border-outline-variant pl-2">
+            <button
+              type="button"
+              onClick={() => setHighlightMode(highlightMode === "starting" ? "none" : "starting")}
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                highlightMode === "starting"
+                  ? "bg-tertiary text-on-tertiary"
+                  : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+              }`}
+              title="Highlight starting courses with zero prerequisites"
+            >
+              <SparklesIcon className="h-3 w-3" /> Starting ({fullGraph.insights.startingCourses.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setHighlightMode(highlightMode === "critical" ? "none" : "critical")}
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                highlightMode === "critical"
+                  ? "bg-secondary text-on-secondary"
+                  : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+              }`}
+              title="Highlight critical path courses with multiple downstream dependencies"
+            >
+              <ZapIcon className="h-3 w-3" /> Critical ({fullGraph.insights.criticalCourses.length})
+            </button>
+          </div>
+        </div>
+
+        {/* Toolbar Actions */}
+        <div className="flex items-center gap-2">
+          {onToggleListView && !isFullScreen && (
+            <Button variant="outline" size="sm" onClick={onToggleListView}>
+              <ListIcon className="mr-1.5 h-4 w-4" /> Requirements List
+            </Button>
+          )}
+
+          <Button variant="outline" size="sm" onClick={handleExportSvg} title="Download SVG Graph">
+            <DownloadIcon className="h-4 w-4 mr-1" /> SVG
+          </Button>
+
+          <Button variant="outline" size="sm" onClick={handlePrint} title="Print Printable Degree Map">
+            <PrinterIcon className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsFullScreen(!isFullScreen)}
+            title={isFullScreen ? "Exit Full Screen" : "Full Screen Mode"}
+          >
+            {isFullScreen ? <Minimize2Icon className="h-4 w-4" /> : <Maximize2Icon className="h-4 w-4" />}
+          </Button>
+        </div>
+      </div>
+
+      {/* Main React Flow Graph Region */}
+      <section
+        role="region"
+        aria-label={`Interactive prerequisite graph for ${programTitle}`}
+        className={`relative overflow-hidden rounded-xl border border-surface-variant bg-surface-container-lowest shadow-sm ${graphHeightClass}`}
+      >
+        <ReactFlow
+          nodes={processedNodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          nodeTypes={nodeTypes}
+          onNodeClick={onNodeClick}
+          nodesDraggable={false}
+          fitView
+          fitViewOptions={{ padding: 0.25 }}
+          attributionPosition="bottom-right"
+          className="bg-surface-container-lowest"
+        >
+          <Background color="#e4e2e1" gap={20} size={1} />
+          <Controls className="!border-surface-variant !bg-surface-container-lowest !shadow-md" />
+        </ReactFlow>
+
+        {/* Legend Overlay */}
+        <div className="pointer-events-none absolute bottom-4 left-4 z-10 flex flex-col gap-1.5 rounded-lg border border-surface-variant bg-surface-container-lowest/90 p-3 shadow-md backdrop-blur-xs sm:flex-row sm:items-center sm:gap-4 text-xs">
+          <div className="flex items-center gap-3 font-medium">
+            <span className="flex items-center gap-1">
+              <span className="h-3 w-3 rounded-xs border border-[#003087] bg-[#dbe1ff]" /> GenEd
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-3 w-3 rounded-xs border border-[#004112] bg-[#e8f5e9]" /> Core
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-3 w-3 rounded-xs border border-[#7e22ce] bg-[#f3e8ff]" /> Major
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-3 w-3 rounded-xs border border-[#d97706] bg-[#fef3c7]" /> Elective
+            </span>
+          </div>
+          <div className="h-3 w-px bg-outline-variant hidden sm:block" />
+          <div className="flex items-center gap-3 text-[11px] text-on-surface-variant">
+            <span className="flex items-center gap-1">
+              <span className="h-0.5 w-4 bg-outline" /> Prerequisite
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-0.5 w-4 border-b-2 border-dashed border-[#2c6cf0]" /> Corequisite
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Course Detail Modal Drawer */}
+      <CourseDetailDrawer
+        course={selectedCourse}
+        onClose={() => setSelectedCourse(null)}
+        allCourses={nodesData}
+      />
+    </div>
+  );
+}

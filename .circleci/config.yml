@@ -1,0 +1,76 @@
+version: 2.1
+
+parameters:
+  run_program_sync:
+    type: boolean
+    default: false
+
+executors:
+  node-executor:
+    docker:
+      - image: cimg/node:24.0.0
+    resource_class: small
+
+jobs:
+  sync_program_catalog:
+    executor: node-executor
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "package-lock.json" }}
+            - v1-deps-
+
+      - run:
+          name: Install Dependencies
+          command: npm ci
+
+      - save_cache:
+          paths:
+            - ~/.npm
+          key: v1-deps-{{ checksum "package-lock.json" }}
+
+      - run:
+          name: Run Database Migrations
+          command: npm run db:migrate
+
+      - run:
+          name: Execute Program Catalog Synchronization
+          command: |
+            mkdir -p /tmp/sync-results
+            npm run program:sync > /tmp/sync-results/sync-output.json
+            cat /tmp/sync-results/sync-output.json
+
+      - run:
+          name: Trigger Vercel Cache Revalidation on Promotion
+          command: |
+            SYNC_ACTION=$(node -e 'const r=require("/tmp/sync-results/sync-output.json"); console.log(r.action);')
+            echo "Sync Action Result: ${SYNC_ACTION}"
+
+            if [ "${SYNC_ACTION}" = "promoted" ]; then
+              echo "Promotion detected! Triggering Vercel cache revalidation..."
+              if [ -n "${SITE_URL}" ] && [ -n "${REVALIDATE_SECRET}" ]; then
+                curl -X POST "${SITE_URL}/api/revalidate" \
+                  -H "Authorization: Bearer ${REVALIDATE_SECRET}" \
+                  -H "Content-Type: application/json" \
+                  --fail --silent --show-error
+                echo "Cache revalidation trigger succeeded!"
+              else
+                echo "Skipping revalidation: SITE_URL or REVALIDATE_SECRET not configured in CircleCI context."
+              fi
+            else
+              echo "Skipping revalidation: Sync action was '${SYNC_ACTION}'."
+            fi
+
+      - store_artifacts:
+          path: /tmp/sync-results/sync-output.json
+          destination: sync-output.json
+
+workflows:
+  catalog_sync_workflow:
+    when: << pipeline.parameters.run_program_sync >>
+    jobs:
+      - sync_program_catalog:
+          context:
+            - snhu-degreemap-sync-context

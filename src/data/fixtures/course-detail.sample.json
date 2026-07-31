@@ -1,0 +1,26 @@
+[
+  {
+    "pid": "61ed75d237ce9b227c9086b5",
+    "code": "IT 140",
+    "title": "Introduction to Scripting",
+    "credits": 3,
+    "description": "Fundamental programming concepts using Python.",
+    "rulesPrerequisites": "Prerequisites: None."
+  },
+  {
+    "pid": "62b738f9f8827f964f6bffe5",
+    "code": "IT 145",
+    "title": "Intro to Software Development",
+    "credits": 3,
+    "description": "Object-oriented principles using Java.",
+    "rulesPrerequisites": "Prerequisite: IT-140."
+  },
+  {
+    "pid": "62b739362ee949105a2dc80c",
+    "code": "CS 210",
+    "title": "Programming Languages",
+    "credits": 3,
+    "description": "C++ systems programming and memory management.",
+    "rulesPrerequisites": "Prerequisite: IT-145."
+  }
+]

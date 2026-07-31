@@ -1,0 +1,50 @@
+{
+  "name": "snhu-degreemap",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "program:bootstrap": "tsx scripts/program-bootstrap.ts",
+    "program:sync": "tsx scripts/program-sync.ts"
+  },
+  "dependencies": {
+    "@dagrejs/dagre": "^3.0.0",
+    "@neondatabase/serverless": "^1.1.0",
+    "@types/pg": "^8.20.0",
+    "@xyflow/react": "^12.11.1",
+    "cheerio": "^1.2.0",
+    "lucide-react": "^1.22.0",
+    "next": "^16.2.9",
+    "pg": "^8.22.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/dagre": "^0.7.52",
+    "@types/dotenv": "^6.1.1",
+    "@types/node": "^24.13.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.9",
+    "jsdom": "^26.0.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^3.2.7"
+  }
+}

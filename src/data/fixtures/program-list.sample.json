@@ -1,0 +1,162 @@
+[
+  {
+    "pid": "NyTO7EItl",
+    "title": "Accounting (AS)",
+    "code": "AS.ACC",
+    "programType": {
+      "name": "Associate's Degree"
+    },
+    "catalogCategory": {
+      "name": "Accounting & Finance"
+    },
+    "offering": {
+      "online": true,
+      "campus": true
+    },
+    "dateStart": "2023-07-03"
+  },
+  {
+    "pid": "EJeCh74Ltl",
+    "title": "Accounting (BS)",
+    "code": "BS.ACC",
+    "programType": {
+      "name": "Bachelor's Degree"
+    },
+    "catalogCategory": {
+      "name": "Accounting & Finance"
+    },
+    "offering": {
+      "online": true,
+      "campus": true
+    },
+    "dateStart": "2023-07-03"
+  },
+  {
+    "pid": "N1ZGVVItx",
+    "title": "Accounting (Certificate)",
+    "code": "CRT.ACT",
+    "programType": {
+      "name": "Certificate"
+    },
+    "catalogCategory": {
+      "name": "Accounting & Finance"
+    },
+    "offering": {
+      "online": true,
+      "campus": true
+    },
+    "dateStart": "2022-07-01"
+  },
+  {
+    "pid": "E1lf4N8Kx",
+    "title": "Accounting (Graduate Certificate)",
+    "code": "CRT.ACC.GR",
+    "programType": {
+      "name": "Certificate"
+    },
+    "catalogCategory": {
+      "name": "Accounting & Finance"
+    },
+    "offering": {
+      "online": true,
+      "campus": false
+    },
+    "dateStart": "2023-07-03"
+  },
+  {
+    "pid": "VJ5pYFGhl",
+    "title": "Accounting (Minor)",
+    "code": "ACC.MINOR",
+    "programType": {
+      "name": "Minor"
+    },
+    "catalogCategory": {
+      "name": "Accounting & Finance"
+    },
+    "offering": {
+      "online": true,
+      "campus": true
+    },
+    "dateStart": "2022-07-01"
+  },
+  {
+    "pid": "4k1jENItl",
+    "title": "Accounting (MS)",
+    "code": "MS.ACC",
+    "programType": {
+      "name": "Master's Degree"
+    },
+    "catalogCategory": {
+      "name": "Accounting & Finance"
+    },
+    "offering": {
+      "online": true,
+      "campus": false
+    },
+    "dateStart": "2023-07-03"
+  },
+  {
+    "pid": "N1W674UKg",
+    "title": "Accounting and Finance (BS)",
+    "code": "BS.AFI",
+    "programType": {
+      "name": "Bachelor's Degree"
+    },
+    "catalogCategory": {
+      "name": "Accounting & Finance"
+    },
+    "offering": {
+      "online": true,
+      "campus": true
+    },
+    "dateStart": "2023-07-03"
+  },
+  {
+    "pid": "SJIaJ-9Fe",
+    "title": "Advanced Counterterrorism and Homeland Security (Graduate Certificate)",
+    "code": "CRT.ACHS.GR",
+    "programType": {
+      "name": "Certificate"
+    },
+    "catalogCategory": {
+      "name": "Criminal Justice"
+    },
+    "offering": {
+      "online": true,
+      "campus": false
+    },
+    "dateStart": "2017-05-22"
+  },
+  {
+    "pid": "H1NA82idB",
+    "title": "Advanced Graduate Studies in Creative Writing (Post Master's Certificate)",
+    "code": "CRT.CGS.CWR",
+    "programType": {
+      "name": "Certificate"
+    },
+    "catalogCategory": {
+      "name": "Liberal Arts"
+    },
+    "offering": {
+      "online": false,
+      "campus": true
+    },
+    "dateStart": "2020-01-02"
+  },
+  {
+    "pid": "EyeItgETZ",
+    "title": "Advanced Graduate Studies in Curriculum and Instruction (Post Master's Certificate)",
+    "code": "CRT.CGS.CIN",
+    "programType": {
+      "name": "Certificate"
+    },
+    "catalogCategory": {
+      "name": "Education"
+    },
+    "offering": {
+      "online": false,
+      "campus": true
+    },
+    "dateStart": "2018-03-29"
+  }
+]
