@@ -110,18 +110,26 @@ export const getPrograms = cache(
                 p.total_credits as "totalCredits",
                 p.description_summary as description,
                 p.source_url as "sourceCatalogUrl",
-                COUNT(prc.id)::text as "requiredCourseCount"
+                (
+                  (SELECT COUNT(DISTINCT prc2.course_code)
+                   FROM program_requirement_courses prc2
+                   JOIN program_requirement_groups prg2 ON prc2.requirement_group_id = prg2.id
+                   WHERE prg2.program_id = p.id AND prc2.is_optional = false AND (prg2.rule_type IS NULL OR prg2.rule_type = 'all_of')
+                  ) +
+                  COALESCE((SELECT SUM(prg3.minimum_selections)
+                   FROM program_requirement_groups prg3
+                   WHERE prg3.program_id = p.id AND prg3.rule_type = 'choose_n'
+                  ), 0)
+                )::text as "requiredCourseCount"
               FROM programs p
               JOIN catalogs c ON p.catalog_id = c.id
-              LEFT JOIN program_requirement_groups prg ON prg.program_id = p.id
-              LEFT JOIN program_requirement_courses prc ON prc.requirement_group_id = prg.id
-              GROUP BY p.id, p.slug, p.title, p.credential, c.year_label, p.total_credits, p.description_summary, p.source_url
               ORDER BY p.title ASC;
             `
             );
 
             if (res.rows.length === 0) {
-              return isFixturesEnabled() ? filterFixtures(options) : [];
+              if (isFixturesEnabled()) return filterFixtures(options);
+              return [];
             }
 
             const programs: DegreeProgram[] = res.rows.map((row) => ({
@@ -146,8 +154,9 @@ export const getPrograms = cache(
           } finally {
             client.release();
           }
-        } catch {
-          return isFixturesEnabled() ? filterFixtures(options) : [];
+        } catch (err) {
+          if (isFixturesEnabled()) return filterFixtures(options);
+          throw err;
         }
       },
       ["get-all-programs-summaries", JSON.stringify(options || {})],
@@ -199,7 +208,8 @@ export const getProgramBySlug = cache(
             );
 
             if (progRes.rows.length === 0) {
-              return isFixturesEnabled() ? getFixtureBySlug(slug) || null : null;
+              if (isFixturesEnabled()) return getFixtureBySlug(slug) || null;
+              return null;
             }
 
             const p = progRes.rows[0];
@@ -373,11 +383,26 @@ export const getProgramBySlug = cache(
               }
             }
 
-            const edgesRes = await client.query<{
-              source_course_code: string;
-              target_course_code: string;
-              relationship_type: string;
-            }>("SELECT source_course_code, target_course_code, relationship_type FROM degree_course_edges;");
+            const targetNodesArr = Array.from(nodesMap.keys());
+            let edgesRes: { rows: Array<{ source_course_code: string; target_course_code: string; relationship_type: string; source_title: string | null; source_credits: number | null }> } = { rows: [] };
+            
+            if (targetNodesArr.length > 0) {
+              edgesRes = await client.query<{
+                source_course_code: string;
+                target_course_code: string;
+                relationship_type: string;
+                source_title: string | null;
+                source_credits: number | null;
+              }>(
+                `
+                SELECT e.source_course_code, e.target_course_code, e.relationship_type, c.title as source_title, c.credits as source_credits
+                FROM degree_course_edges e
+                LEFT JOIN degree_courses c ON e.source_course_code = c.course_code
+                WHERE e.target_course_code = ANY($1::text[])
+                `,
+                [targetNodesArr]
+              );
+            }
 
             const edges: PrerequisiteEdgeData[] = [];
             for (const eRow of edgesRes.rows) {
@@ -385,11 +410,31 @@ export const getProgramBySlug = cache(
               const tgtId = eRow.target_course_code.replace(/\s+/g, "");
 
               const targetNode = nodesMap.get(eRow.target_course_code);
-              const sourceNode = nodesMap.get(eRow.source_course_code);
+              let sourceNode = nodesMap.get(eRow.source_course_code);
 
-              if (targetNode && sourceNode) {
+              if (targetNode) {
+                if (!sourceNode) {
+                  sourceNode = {
+                    id: srcId,
+                    code: eRow.source_course_code,
+                    title: eRow.source_title || "External Requirement",
+                    credits: eRow.source_credits,
+                    groupCode: "external",
+                    groupName: "External Prerequisites",
+                    groupCategory: "other",
+                    prerequisites: [],
+                  };
+                  nodesMap.set(eRow.source_course_code, sourceNode);
+                }
+
                 if (!targetNode.prerequisites?.includes(srcId)) {
                   targetNode.prerequisites = [...(targetNode.prerequisites || []), srcId];
+                }
+                
+                if (eRow.relationship_type === "corequisite") {
+                  if (!targetNode.corequisites?.includes(srcId)) {
+                    targetNode.corequisites = [...(targetNode.corequisites || []), srcId];
+                  }
                 }
 
                 edges.push({
@@ -426,8 +471,9 @@ export const getProgramBySlug = cache(
           } finally {
             client.release();
           }
-        } catch {
-          return isFixturesEnabled() ? getFixtureBySlug(slug) || null : null;
+        } catch (err) {
+          if (isFixturesEnabled()) return getFixtureBySlug(slug) || null;
+          throw err;
         }
       },
       ["get-program-by-slug", slug],
@@ -513,8 +559,9 @@ export const searchPrograms = async (
     } finally {
       client.release();
     }
-  } catch {
-    return [];
+  } catch (err) {
+    if (isFixturesEnabled()) return [];
+    throw err;
   }
 };
 
@@ -576,8 +623,34 @@ export const getProgramsForCourse = cache(async (courseCode: string): Promise<De
     } finally {
       client.release();
     }
+  } catch (err) {
+    if (isFixturesEnabled()) return [];
+    throw err;
+  }
+});
+
+export const getProgramSyncState = cache(async () => {
+  const pool = getDbPool();
+  if (!pool) return null;
+
+  try {
+    const client = await pool.connect();
+    try {
+      const res = await client.query<{
+        status: string;
+        last_error: string | null;
+        completed_at: Date | null;
+        next_due_at: Date | null;
+      }>(
+        "SELECT status, last_error, completed_at, next_due_at FROM program_sync_state WHERE id = 'program_sync' LIMIT 1"
+      );
+      if (res.rows.length > 0) return res.rows[0];
+      return null;
+    } finally {
+      client.release();
+    }
   } catch {
-    return [];
+    return null;
   }
 });
 

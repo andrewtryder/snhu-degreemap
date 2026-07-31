@@ -5,7 +5,7 @@ import { AppFooter } from "@/components/AppFooter";
 import { Card } from "@/components/ui/Card";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { Badge } from "@/components/ui/Badge";
-import { fixturePrograms } from "@/data/fixturePrograms";
+import { getPrograms } from "@/lib/serverData";
 import {
   GraduationCapIcon,
   BookOpenIcon,
@@ -17,10 +17,11 @@ import {
 
 export const revalidate = false;
 
-export default function HomePage() {
+export default async function HomePage() {
+  const programs = await getPrograms();
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <AppHeader currentPage="home" />
+      <AppHeader currentPage="home" initialPrograms={programs} />
 
       <main id="main-content" className="flex-1">
         <div className="mx-auto w-full max-w-[var(--spacing-container-max)] px-4 py-8 md:px-8 space-y-8">
@@ -68,7 +69,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard
               label="Available Programs"
-              value={fixturePrograms.length}
+              value={programs.length}
               subtext="BS, BA, & RN-to-BSN pathways"
               icon={<GraduationCapIcon className="h-5 w-5 text-primary" />}
             />
@@ -107,12 +108,12 @@ export default function HomePage() {
                 href="/programs"
                 className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
               >
-                View all ({fixturePrograms.length}) <ArrowRightIcon className="h-3.5 w-3.5" />
+                View all ({programs.length}) <ArrowRightIcon className="h-3.5 w-3.5" />
               </Link>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {fixturePrograms.map((program) => (
+              {programs.slice(0, 15).map((program) => (
                 <Card
                   key={program.slug}
                   hoverable

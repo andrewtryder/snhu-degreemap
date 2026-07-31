@@ -167,6 +167,7 @@ export async function runMigrations(connectionString?: string) {
         credits INTEGER,
         subject_code TEXT,
         source_hash TEXT,
+        resolution_status TEXT DEFAULT 'resolved',
         synced_at TIMESTAMPTZ
       );
 
@@ -177,6 +178,7 @@ export async function runMigrations(connectionString?: string) {
         credits INTEGER,
         subject_code TEXT,
         source_hash TEXT,
+        resolution_status TEXT DEFAULT 'resolved',
         synced_at TIMESTAMPTZ
       );
     `);
@@ -219,6 +221,20 @@ export async function runMigrations(connectionString?: string) {
       );
     `);
 
+    // 9. Sync Items Snapshot Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS program_sync_items (
+        sync_id UUID NOT NULL,
+        ordinal INTEGER NOT NULL,
+        source_pid TEXT NOT NULL,
+        status TEXT DEFAULT 'pending',
+        reason TEXT,
+        processed_at TIMESTAMPTZ,
+        PRIMARY KEY (sync_id, ordinal),
+        UNIQUE (sync_id, source_pid)
+      );
+    `);
+
     // Additive columns for backwards compatibility
     await client.query(`
       ALTER TABLE program_sync_state ADD COLUMN IF NOT EXISTS sync_id UUID;
@@ -237,26 +253,14 @@ export async function runMigrations(connectionString?: string) {
 
       ALTER TABLE degree_courses ALTER COLUMN credits DROP NOT NULL;
       ALTER TABLE degree_courses ALTER COLUMN credits DROP DEFAULT;
+      ALTER TABLE degree_courses ADD COLUMN IF NOT EXISTS resolution_status TEXT DEFAULT 'resolved';
       ALTER TABLE degree_courses_stage ALTER COLUMN credits DROP NOT NULL;
       ALTER TABLE degree_courses_stage ALTER COLUMN credits DROP DEFAULT;
+      ALTER TABLE degree_courses_stage ADD COLUMN IF NOT EXISTS resolution_status TEXT DEFAULT 'resolved';
 
       ALTER TABLE program_sync_items ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
       ALTER TABLE program_sync_items ADD COLUMN IF NOT EXISTS reason TEXT;
       ALTER TABLE program_sync_items ADD COLUMN IF NOT EXISTS processed_at TIMESTAMPTZ;
-    `);
-
-    // 9. Sync Items Snapshot Table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS program_sync_items (
-        sync_id UUID NOT NULL,
-        ordinal INTEGER NOT NULL,
-        source_pid TEXT NOT NULL,
-        status TEXT DEFAULT 'pending',
-        reason TEXT,
-        processed_at TIMESTAMPTZ,
-        PRIMARY KEY (sync_id, ordinal),
-        UNIQUE (sync_id, source_pid)
-      );
     `);
 
     // Initialize sync state row if absent

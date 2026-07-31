@@ -6,16 +6,16 @@ import { Dialog } from "@/components/ui/Dialog";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { fixturePrograms } from "@/data/fixturePrograms";
 import { DegreeLevel } from "@/types/program";
 import { GraduationCapIcon, ChevronRightIcon, FilterIcon, Loader2Icon } from "lucide-react";
 
 export interface ProgramBrowserDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  initialPrograms?: Array<{ slug: string; title: string; credential: string; degreeLevel: string; catalogYear?: string }>;
 }
 
-export function ProgramBrowserDialog({ isOpen, onClose }: ProgramBrowserDialogProps) {
+export function ProgramBrowserDialog({ isOpen, onClose, initialPrograms = [] }: ProgramBrowserDialogProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLevel, setSelectedLevel] = useState<DegreeLevel | "ALL">("ALL");
@@ -69,7 +69,7 @@ export function ProgramBrowserDialog({ isOpen, onClose }: ProgramBrowserDialogPr
       return searchResults.filter((p) => selectedLevel === "ALL" || p.degreeLevel === selectedLevel);
     }
 
-    return fixturePrograms.filter((program) => {
+    return initialPrograms.filter((program) => {
       const matchesSearch =
         trimmed === "" ||
         program.title.toLowerCase().includes(trimmed.toLowerCase()) ||
@@ -81,7 +81,7 @@ export function ProgramBrowserDialog({ isOpen, onClose }: ProgramBrowserDialogPr
 
       return matchesSearch && matchesLevel && matchesYear;
     });
-  }, [searchTerm, searchResults, selectedLevel, selectedYear]);
+  }, [searchTerm, searchResults, selectedLevel, selectedYear, initialPrograms]);
 
   const handleSelectProgram = (slug: string) => {
     onClose();

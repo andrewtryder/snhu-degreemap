@@ -10,6 +10,7 @@ export interface NormalizedCourseDetails {
   prerequisiteText?: string;
   prerequisites: string[]; // List of prerequisite course codes
   corequisites: string[]; // List of corequisite course codes
+  resolutionStatus?: "resolved" | "not_found" | "failed" | "unavailable";
 }
 
 export function parseCourseDetails(raw: unknown): NormalizedCourseDetails {
@@ -49,6 +50,7 @@ export function parseCourseDetails(raw: unknown): NormalizedCourseDetails {
     prerequisiteText: prereqText,
     prerequisites,
     corequisites,
+    resolutionStatus: "resolved",
   };
 }
 

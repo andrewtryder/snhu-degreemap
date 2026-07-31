@@ -146,12 +146,13 @@ export async function persistCoursesToStaging(
     await client.query(
       `
       INSERT INTO degree_courses_stage (
-        course_code, source_pid, title, credits, subject_code, source_hash, synced_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        course_code, source_pid, title, credits, subject_code, source_hash, resolution_status, synced_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
       ON CONFLICT (course_code) DO UPDATE SET
         title = EXCLUDED.title,
         credits = EXCLUDED.credits,
         source_pid = EXCLUDED.source_pid,
+        resolution_status = EXCLUDED.resolution_status,
         synced_at = NOW();
     `,
       [
@@ -161,6 +162,7 @@ export async function persistCoursesToStaging(
         credits,
         course.code.split(" ")[0] || "GEN",
         course.pid,
+        course.resolutionStatus || "resolved",
       ]
     );
   }

@@ -110,21 +110,72 @@ export async function validateStaging(
   };
 }
 
-export async function promoteStagingToLive(client: PoolClient): Promise<void> {
+export async function promoteStagingToLive(client: PoolClient, syncId: string): Promise<void> {
   try {
     await client.query("BEGIN;");
+
+    // 1. Lock the sync state row and verify ownership and lease
+    const checkOwnerRes = await client.query(
+      "SELECT 1 FROM program_sync_state WHERE id = 'program_sync' AND sync_id = $1 AND (lease_expires_at IS NULL OR lease_expires_at > NOW()) FOR UPDATE;",
+      [syncId]
+    );
+
+    if (checkOwnerRes.rowCount === 0) {
+      throw new Error(`Sync lease ownership lost or expired for syncId ${syncId} during promotion transaction.`);
+    }
 
     // Atomically replace live tables from staging tables within one single transaction
     await client.query(
       "TRUNCATE TABLE programs, program_requirement_groups, program_requirement_courses, program_text_requirements, degree_courses, degree_course_edges CASCADE;"
     );
 
-    await client.query("INSERT INTO programs SELECT * FROM programs_stage;");
-    await client.query("INSERT INTO program_requirement_groups SELECT * FROM program_requirement_groups_stage;");
-    await client.query("INSERT INTO program_requirement_courses SELECT * FROM program_requirement_courses_stage;");
-    await client.query("INSERT INTO program_text_requirements SELECT * FROM program_text_requirements_stage;");
-    await client.query("INSERT INTO degree_courses SELECT * FROM degree_courses_stage;");
-    await client.query("INSERT INTO degree_course_edges SELECT * FROM degree_course_edges_stage;");
+    await client.query(`
+      INSERT INTO programs (id, catalog_id, source_pid, slug, title, credential, total_credits, description_summary, source_url, source_hash, warning_count, synced_at)
+      SELECT id, catalog_id, source_pid, slug, title, credential, total_credits, description_summary, source_url, source_hash, warning_count, synced_at
+      FROM programs_stage;
+    `);
+    
+    await client.query(`
+      INSERT INTO program_requirement_groups (id, program_id, parent_group_id, source_path, title, category, rule_type, minimum_selections, maximum_selections, minimum_credits, sort_order, warning_count, raw_excerpt)
+      SELECT id, program_id, parent_group_id, source_path, title, category, rule_type, minimum_selections, maximum_selections, minimum_credits, sort_order, warning_count, raw_excerpt
+      FROM program_requirement_groups_stage;
+    `);
+    
+    await client.query(`
+      INSERT INTO program_requirement_courses (id, requirement_group_id, source_path, source_pid, course_code, title, credits, is_optional, sort_order)
+      SELECT id, requirement_group_id, source_path, source_pid, course_code, title, credits, is_optional, sort_order
+      FROM program_requirement_courses_stage;
+    `);
+    
+    await client.query(`
+      INSERT INTO program_text_requirements (id, requirement_group_id, source_path, text, sort_order, is_unparsed)
+      SELECT id, requirement_group_id, source_path, text, sort_order, is_unparsed
+      FROM program_text_requirements_stage;
+    `);
+    
+    await client.query(`
+      INSERT INTO degree_courses (course_code, source_pid, title, credits, subject_code, source_hash, resolution_status, synced_at)
+      SELECT course_code, source_pid, title, credits, subject_code, source_hash, resolution_status, synced_at
+      FROM degree_courses_stage;
+    `);
+    
+    await client.query(`
+      INSERT INTO degree_course_edges (source_course_code, target_course_code, relationship_type, source_text)
+      SELECT source_course_code, target_course_code, relationship_type, source_text
+      FROM degree_course_edges_stage;
+    `);
+
+    // Mark the run completed and release the lease
+    const nextDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    await client.query(
+      `
+      UPDATE program_sync_state
+      SET status = 'idle', completed_at = NOW(), next_due_at = $1,
+          lease_expires_at = NULL, last_error = NULL
+      WHERE id = 'program_sync' AND sync_id = $2;
+    `,
+      [nextDue, syncId]
+    );
 
     await client.query("COMMIT;");
   } catch (err) {

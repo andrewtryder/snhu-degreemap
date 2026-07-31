@@ -46,15 +46,23 @@ export function normalizeDegreeLevel(credential: string): DegreeLevel {
   const c = credential.toUpperCase();
   if (c.includes("RN TO BSN") || c.includes("RN-TO-BSN")) return "RN to BSN";
   if (c.includes("MBA") || c.includes("MASTER OF BUSINESS")) return "MBA";
-  if (c.includes("MASTER OF ARTS") || c.includes(" MA ") || c.endsWith(" MA")) return "MA";
-  if (c.includes("MASTER OF SCIENCE") || c.includes(" MS ") || c.endsWith(" MS") || c.includes("MASTER")) return "MS";
-  if (c.includes("BACHELOR OF ARTS") || c.includes(" BA ") || c.endsWith(" BA")) return "BA";
-  if (c.includes("BACHELOR OF SCIENCE") || c.includes(" BS ") || c.endsWith(" BS") || c.includes("BACHELOR")) return "BS";
-  if (c.includes("ASSOCIATE OF ARTS") || c.includes(" AA ") || c.endsWith(" AA")) return "AA";
-  if (c.includes("ASSOCIATE OF SCIENCE") || c.includes(" AS ") || c.endsWith(" AS") || c.includes("ASSOCIATE")) return "AS";
+  if (c.includes("MFA") || c.includes("MASTER OF FINE ARTS")) return "Other";
+  if (c.includes("MED") || c.includes("M.ED") || c.includes("MASTER OF EDUCATION")) return "Other";
+  if (c.includes("MASTER OF ARTS") || c.includes(" MA ") || c.endsWith(" MA") || c === "MA") return "MA";
+  if (c.includes("MASTER OF SCIENCE") || c.includes(" MS ") || c.endsWith(" MS") || c === "MS") return "MS";
+  if (c.includes("BFA") || c.includes("BACHELOR OF FINE ARTS")) return "Other";
+  if (c.includes("BBA") || c.includes("BACHELOR OF BUSINESS")) return "Other";
+  if (c.includes("BACHELOR OF ARTS") || c.includes(" BA ") || c.endsWith(" BA") || c === "BA") return "BA";
+  if (c.includes("BACHELOR OF SCIENCE") || c.includes(" BS ") || c.endsWith(" BS") || c === "BS") return "BS";
+  if (c.includes("ASSOCIATE OF ARTS") || c.includes(" AA ") || c.endsWith(" AA") || c === "AA") return "AA";
+  if (c.includes("ASSOCIATE OF SCIENCE") || c.includes(" AS ") || c.endsWith(" AS") || c === "AS") return "AS";
   if (c.includes("UNDERGRADUATE CERTIFICATE")) return "Undergraduate Certificate";
   if (c.includes("GRADUATE CERTIFICATE")) return "Graduate Certificate";
-  if (c.includes("CERTIF")) return "Undergraduate Certificate";
+  // If it still explicitly says master, bachelor or associate but didn't match the specific BAs/BSs
+  if (c.match(/\bMASTER\b/)) return "Other";
+  if (c.match(/\bBACHELOR\b/)) return "Other";
+  if (c.match(/\bASSOCIATE\b/)) return "Other";
+  if (c.match(/\bCERTIFICATE\b/) || c.includes("CERTIF")) return "Other";
   return "Other";
 }
 

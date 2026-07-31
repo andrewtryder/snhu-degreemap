@@ -70,8 +70,8 @@ jobs:
             fi
 
       - store_artifacts:
-          path: /tmp/sync-results/sync-output.json
-          destination: sync-output.json
+          path: /tmp/sync-results
+          destination: sync-results
 
 workflows:
   catalog_sync_workflow:

@@ -9,12 +9,13 @@ import { Button } from "./ui/Button";
 
 export interface AppHeaderProps {
   currentPage?: "home" | "programs" | "program-detail" | "about";
+  initialPrograms?: Array<{ slug: string; title: string; credential: string; degreeLevel: string; catalogYear: string }>;
 }
 
 const searchInputClassName =
   "w-full rounded-full border border-outline-variant bg-surface-container-low py-2 pl-10 pr-4 text-sm text-on-surface outline-none transition-all placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary";
 
-export function AppHeader({ currentPage = "home" }: AppHeaderProps) {
+export function AppHeader({ currentPage = "home", initialPrograms = [] }: AppHeaderProps) {
   const router = useRouter();
   const [globalQuery, setGlobalQuery] = useState("");
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
@@ -106,8 +107,8 @@ export function AppHeader({ currentPage = "home" }: AppHeaderProps) {
         </div>
       </header>
 
-      {/* Program Browser Dialog Modal */}
-      <ProgramBrowserDialog isOpen={isBrowserOpen} onClose={() => setIsBrowserOpen(false)} />
+      {/* ProgramBrowserDialog Modal */}
+      <ProgramBrowserDialog isOpen={isBrowserOpen} onClose={() => setIsBrowserOpen(false)} initialPrograms={initialPrograms} />
     </>
   );
 }

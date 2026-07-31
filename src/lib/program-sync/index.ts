@@ -10,7 +10,10 @@ import { kualiConfig } from "@/config/kualiConfig";
 
 export async function runProgramSync(options: SyncOptions = {}): Promise<SyncResult> {
   const catalogId = options.catalogId || kualiConfig.catalogId;
-  const catalogYearLabel = process.env.KUALI_CATALOG_YEAR_LABEL || "2025-2026";
+  const catalogYearLabel = process.env.KUALI_CATALOG_YEAR_LABEL;
+  if (!catalogYearLabel) {
+    throw new Error("KUALI_CATALOG_YEAR_LABEL environment variable is not set. Catalog year is unavailable.");
+  }
   const batchSize = options.batchSize || 10;
   const maxConcurrency = options.maxConcurrency || 3;
   const syncId = randomUUID();
@@ -185,9 +188,12 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
                 if (rawCourse) {
                   const detail = parseCoursePayload(rawCourse);
                   parsedCourses[i + idx] = detail;
+                } else {
+                  parsedCourses[i + idx].resolutionStatus = "not_found";
                 }
               } catch {
                 // Course detail fetch failure retained without silent fallback
+                parsedCourses[i + idx].resolutionStatus = "failed";
               }
             }
           })
@@ -263,7 +269,7 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
         throw new Error(`Sync lease ownership lost for syncId ${syncId} immediately prior to promotion.`);
       }
 
-      await promoteStagingToLive(client);
+      await promoteStagingToLive(client, syncId);
 
       const nextDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
       await client.query(

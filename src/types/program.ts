@@ -23,6 +23,7 @@ export interface CourseNodeData {
   placeholderType?: string; // e.g. "Free Elective" or "STEM Elective"
   prerequisites?: string[]; // IDs of prerequisite courses
   corequisites?: string[]; // IDs of corequisite courses
+  resolutionStatus?: "resolved" | "not_found" | "failed" | "unavailable";
   notes?: string;
 }
 
@@ -43,6 +44,11 @@ export interface RequirementItem {
   courses?: string[];
   subItems?: RequirementItem[];
   unparsedRawText?: string;
+  isUnparsed?: boolean;
+  ruleType?: string;
+  minimumSelections?: number | null;
+  maximumSelections?: number | null;
+  minimumCredits?: number | null;
 }
 
 export interface RequirementGroup {
@@ -57,6 +63,9 @@ export interface RequirementGroup {
     badgeText: string;
   };
   totalCredits: number | null;
+  ruleType?: string;
+  minimumSelections?: number | null;
+  maximumSelections?: number | null;
   description?: string;
   items: RequirementItem[];
 }
