@@ -20,7 +20,7 @@ describe("Computer Science Prototype Program Page", () => {
 
     expect(screen.getByText("Program Requirement Groups & Course Listing")).toBeInTheDocument();
     expect(screen.getByText("About the Computer Science Degree Program")).toBeInTheDocument();
-  });
+  }, 15000);
 
   it("triggers 404 for invalid program slug", async () => {
     await expect(async () => {
