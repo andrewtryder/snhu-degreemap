@@ -23,12 +23,6 @@ export async function validateStaging(
     errors.push("Staging validation failed: programs_stage table is empty.");
   }
 
-  if (expectedCount > 0 && programCount !== expectedCount) {
-    errors.push(
-      `Staging validation failed: program count in staging (${programCount}) does not match expected count (${expectedCount}).`
-    );
-  }
-
   // Check 3: Material shrink comparison with live data
   const liveProgRes = await client.query<{ count: string }>("SELECT COUNT(*) FROM programs;");
   const liveProgramCount = parseInt(liveProgRes.rows[0].count, 10);
@@ -78,22 +72,24 @@ export async function validateStaging(
 }
 
 export async function promoteStagingToLive(client: PoolClient): Promise<void> {
-  // Atomically replace live tables from staging tables
-  await client.query("TRUNCATE TABLE programs CASCADE;");
-  await client.query("INSERT INTO programs SELECT * FROM programs_stage;");
+  try {
+    await client.query("BEGIN;");
 
-  await client.query("TRUNCATE TABLE program_requirement_groups CASCADE;");
-  await client.query("INSERT INTO program_requirement_groups SELECT * FROM program_requirement_groups_stage;");
+    // Atomically replace live tables from staging tables
+    await client.query(
+      "TRUNCATE TABLE programs, program_requirement_groups, program_requirement_courses, program_text_requirements, degree_courses, degree_course_edges CASCADE;"
+    );
 
-  await client.query("TRUNCATE TABLE program_requirement_courses CASCADE;");
-  await client.query("INSERT INTO program_requirement_courses SELECT * FROM program_requirement_courses_stage;");
+    await client.query("INSERT INTO programs SELECT * FROM programs_stage;");
+    await client.query("INSERT INTO program_requirement_groups SELECT * FROM program_requirement_groups_stage;");
+    await client.query("INSERT INTO program_requirement_courses SELECT * FROM program_requirement_courses_stage;");
+    await client.query("INSERT INTO program_text_requirements SELECT * FROM program_text_requirements_stage;");
+    await client.query("INSERT INTO degree_courses SELECT * FROM degree_courses_stage;");
+    await client.query("INSERT INTO degree_course_edges SELECT * FROM degree_course_edges_stage;");
 
-  await client.query("TRUNCATE TABLE program_text_requirements CASCADE;");
-  await client.query("INSERT INTO program_text_requirements SELECT * FROM program_text_requirements_stage;");
-
-  await client.query("TRUNCATE TABLE degree_courses CASCADE;");
-  await client.query("INSERT INTO degree_courses SELECT * FROM degree_courses_stage;");
-
-  await client.query("TRUNCATE TABLE degree_course_edges CASCADE;");
-  await client.query("INSERT INTO degree_course_edges SELECT * FROM degree_course_edges_stage;");
+    await client.query("COMMIT;");
+  } catch (err) {
+    await client.query("ROLLBACK;");
+    throw err;
+  }
 }

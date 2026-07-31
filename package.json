@@ -12,9 +12,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:migrate": "tsx scripts/migrate.ts",
-    "program:bootstrap": "tsx scripts/program-bootstrap.ts",
-    "program:sync": "tsx scripts/program-sync.ts"
+    "db:migrate": "npx tsx scripts/migrate.ts",
+    "program:bootstrap": "npx tsx scripts/program-bootstrap.ts",
+    "program:sync": "npx tsx scripts/program-sync.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.0.0",

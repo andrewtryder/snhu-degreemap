@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    (revalidateTag as unknown as (tag: string) => void)("program-data");
+    revalidateTag("program-data", "max");
     return NextResponse.json({
       revalidated: true,
       tag: "program-data",

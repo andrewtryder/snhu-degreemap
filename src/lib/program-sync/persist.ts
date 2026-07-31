@@ -8,6 +8,7 @@ export async function persistProgramToStaging(
   catalogDbId: string
 ): Promise<void> {
   const programDbId = `prog_${program.sourcePid}`;
+  const totalCredits = Number(program.totalCredits) || 120;
 
   await client.query(
     `
@@ -33,11 +34,11 @@ export async function persistProgramToStaging(
       program.slug,
       program.title,
       program.credential,
-      program.totalCredits,
+      totalCredits,
       program.descriptionSummary,
       program.sourceUrl,
       program.sourceHash,
-      program.warnings.length,
+      (program.warnings || []).length,
     ]
   );
 
@@ -94,6 +95,7 @@ async function persistGroupToStaging(
   let cOrder = 0;
   for (const cr of group.courseRequirements) {
     const crId = `cr_${groupId}_${cOrder}`;
+    const credits = Number(cr.credits) || 3;
     await client.query(
       `
       INSERT INTO program_requirement_courses_stage (
@@ -107,7 +109,7 @@ async function persistGroupToStaging(
         cr.sourcePid || null,
         cr.courseCode,
         cr.title,
-        cr.credits,
+        credits,
         Boolean(cr.optional),
         cOrder++,
       ]
@@ -140,6 +142,7 @@ export async function persistCoursesToStaging(
   courses: NormalizedCourseDetails[]
 ): Promise<void> {
   for (const course of courses) {
+    const credits = Number(course.credits) || 3;
     await client.query(
       `
       INSERT INTO degree_courses_stage (
@@ -155,7 +158,7 @@ export async function persistCoursesToStaging(
         course.code,
         course.pid,
         course.title,
-        course.credits,
+        credits,
         course.code.split(" ")[0] || "GEN",
         course.pid,
       ]

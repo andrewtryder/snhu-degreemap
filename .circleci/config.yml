@@ -38,9 +38,15 @@ jobs:
       - run:
           name: Execute Program Catalog Synchronization
           command: |
+            set -euo pipefail
             mkdir -p /tmp/sync-results
-            npm run program:sync > /tmp/sync-results/sync-output.json
-            cat /tmp/sync-results/sync-output.json
+            npm run program:sync | tee /tmp/sync-results/sync-output.log
+            tail -n 1 /tmp/sync-results/sync-output.log \
+              > /tmp/sync-results/sync-output.json
+            node -e '
+              const result = require("/tmp/sync-results/sync-output.json");
+              console.log(JSON.stringify(result, null, 2));
+            '
 
       - run:
           name: Trigger Vercel Cache Revalidation on Promotion

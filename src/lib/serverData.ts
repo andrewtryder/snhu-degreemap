@@ -2,8 +2,9 @@ import "server-only";
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { Pool } from "pg";
-import { DegreeProgram } from "@/types/program";
+import { DegreeProgram, CourseNodeData, PrerequisiteEdgeData, RequirementGroup, GroupCategory } from "@/types/program";
 import { fixturePrograms, getProgramBySlug as getFixtureBySlug } from "@/data/fixturePrograms";
+import { CATEGORY_PALETTES } from "@/lib/graphLayout";
 
 let poolInstance: Pool | null = null;
 
@@ -56,6 +57,8 @@ export const getPrograms = cache(
               if (p) fetched.push(p);
             }
             return filterFixtures(options, fetched.length > 0 ? fetched : fixturePrograms);
+          } catch {
+            return filterFixtures(options);
           } finally {
             client.release();
           }
@@ -79,8 +82,33 @@ export const getProgramBySlug = cache(
         try {
           const client = await pool.connect();
           try {
-            const progRes = await client.query<DegreeProgram>(
-              "SELECT source_pid as \"sourcePid\", slug, title, credential, catalog_year_label as \"catalogYear\", total_credits as \"totalCredits\", description_summary as description, source_url as \"sourceCatalogUrl\" FROM programs WHERE slug = $1 LIMIT 1;",
+            const progRes = await client.query<{
+              id: string;
+              sourcePid: string;
+              slug: string;
+              title: string;
+              credential: string;
+              catalogYear: string;
+              totalCredits: number;
+              description: string;
+              sourceCatalogUrl: string;
+            }>(
+              `
+              SELECT
+                p.id,
+                p.source_pid as "sourcePid",
+                p.slug,
+                p.title,
+                p.credential,
+                c.year_label as "catalogYear",
+                p.total_credits as "totalCredits",
+                p.description_summary as description,
+                p.source_url as "sourceCatalogUrl"
+              FROM programs p
+              JOIN catalogs c ON p.catalog_id = c.id
+              WHERE p.slug = $1
+              LIMIT 1;
+            `,
               [slug]
             );
 
@@ -89,6 +117,124 @@ export const getProgramBySlug = cache(
             }
 
             const p = progRes.rows[0];
+
+            // Fetch requirement groups from database
+            const groupsRes = await client.query<{
+              id: string;
+              title: string;
+              category: string;
+              rule_type: string;
+              minimum_credits: number | null;
+            }>(
+              `
+              SELECT id, title, category, rule_type, minimum_credits
+              FROM program_requirement_groups
+              WHERE program_id = $1
+              ORDER BY sort_order ASC;
+            `,
+              [p.id]
+            );
+
+            const groups: RequirementGroup[] = [];
+            const nodesMap = new Map<string, CourseNodeData>();
+
+            for (const gRow of groupsRes.rows) {
+              const cat = (gRow.category as GroupCategory) || "core";
+              const palette = CATEGORY_PALETTES[cat] || CATEGORY_PALETTES.core;
+
+              // Fetch courses in group
+              const reqCoursesRes = await client.query<{
+                id: string;
+                source_pid: string | null;
+                course_code: string;
+                title: string;
+                credits: number;
+              }>(
+                `
+                SELECT id, source_pid, course_code, title, credits
+                FROM program_requirement_courses
+                WHERE requirement_group_id = $1
+                ORDER BY sort_order ASC;
+              `,
+                [gRow.id]
+              );
+
+              // Fetch text requirements
+              const textReqsRes = await client.query<{ text: string }>(
+                `
+                SELECT text FROM program_text_requirements
+                WHERE requirement_group_id = $1
+                ORDER BY sort_order ASC;
+              `,
+                [gRow.id]
+              );
+
+              const items = reqCoursesRes.rows.map((c) => ({
+                id: c.id,
+                type: "single" as const,
+                title: `${c.course_code}: ${c.title}`,
+                credits: c.credits,
+              }));
+
+              groups.push({
+                id: gRow.id,
+                title: gRow.title,
+                category: cat,
+                totalCredits: gRow.minimum_credits || items.reduce((acc, i) => acc + i.credits, 0),
+                description: textReqsRes.rows.map((t) => t.text).join("; "),
+                items,
+                colorTheme: {
+                  bg: palette.bg,
+                  border: palette.border,
+                  text: "text-slate-900",
+                  badgeBg: palette.badgeBg,
+                  badgeText: palette.badgeText,
+                },
+              });
+
+              for (const c of reqCoursesRes.rows) {
+                if (!nodesMap.has(c.course_code)) {
+                  nodesMap.set(c.course_code, {
+                    id: c.course_code.replace(/\s+/g, ""),
+                    code: c.course_code,
+                    title: c.title,
+                    credits: c.credits,
+                    groupCode: gRow.id,
+                    groupName: gRow.title,
+                    groupCategory: cat,
+                    prerequisites: [],
+                  });
+                }
+              }
+            }
+
+            // Fetch course details & prerequisite edges from database
+            const edgesRes = await client.query<{
+              source_course_code: string;
+              target_course_code: string;
+              relationship_type: string;
+            }>("SELECT source_course_code, target_course_code, relationship_type FROM degree_course_edges;");
+
+            const edges: PrerequisiteEdgeData[] = [];
+            for (const eRow of edgesRes.rows) {
+              const srcId = eRow.source_course_code.replace(/\s+/g, "");
+              const tgtId = eRow.target_course_code.replace(/\s+/g, "");
+
+              // Link prerequisite into node
+              const targetNode = nodesMap.get(eRow.target_course_code);
+              if (targetNode && !targetNode.prerequisites?.includes(srcId)) {
+                targetNode.prerequisites = [...(targetNode.prerequisites || []), srcId];
+              }
+
+              edges.push({
+                id: `e_${srcId}_${tgtId}`,
+                source: srcId,
+                target: tgtId,
+                type: eRow.relationship_type === "corequisite" ? "corequisite" : "prerequisite",
+              });
+            }
+
+            const nodes = Array.from(nodesMap.values());
             const fixture = getFixtureBySlug(slug);
 
             return {
@@ -98,16 +244,16 @@ export const getProgramBySlug = cache(
               credential: p.credential,
               catalogYear: p.catalogYear || "2025-2026",
               totalCredits: p.totalCredits || 120,
-              requiredCourseCount: fixture?.requiredCourseCount || 24,
+              requiredCourseCount: nodes.length || fixture?.requiredCourseCount || 24,
               electiveCredits: fixture?.electiveCredits || 36,
               estimatedDuration: fixture?.estimatedDuration || "4 Years (8 Semesters)",
               sourceCatalogUrl: p.sourceCatalogUrl || "https://catalog.snhu.edu",
               sourceName: "SNHU Academic Catalog (PostgreSQL Data)",
               description: p.description || fixture?.description || "",
               careerPaths: fixture?.careerPaths,
-              groups: fixture?.groups || [],
-              nodes: fixture?.nodes || [],
-              edges: fixture?.edges || [],
+              groups: groups.length > 0 ? groups : fixture?.groups || [],
+              nodes: nodes.length > 0 ? nodes : fixture?.nodes || [],
+              edges: edges.length > 0 ? edges : fixture?.edges || [],
               unparsedRequirements: fixture?.unparsedRequirements,
             };
           } finally {
@@ -151,6 +297,20 @@ export const searchPrograms = async (
 };
 
 export const getCatalogYears = cache(async (): Promise<string[]> => {
+  const pool = getDbPool();
+  if (pool) {
+    try {
+      const client = await pool.connect();
+      try {
+        const res = await client.query<{ year_label: string }>("SELECT DISTINCT year_label FROM catalogs;");
+        if (res.rows.length > 0) return res.rows.map((r) => r.year_label);
+      } finally {
+        client.release();
+      }
+    } catch {
+      // fallback
+    }
+  }
   return ["2025-2026"];
 });
 

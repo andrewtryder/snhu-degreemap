@@ -45,7 +45,7 @@ export async function runMigrations(connectionString?: string) {
         slug TEXT NOT NULL,
         title TEXT NOT NULL,
         credential TEXT NOT NULL,
-        total_credits INTEGER NOT NULL DEFAULT 120,
+        total_credits INTEGER NOT NULL,
         description_summary TEXT,
         source_url TEXT,
         source_hash TEXT,
@@ -62,7 +62,7 @@ export async function runMigrations(connectionString?: string) {
         slug TEXT NOT NULL,
         title TEXT NOT NULL,
         credential TEXT NOT NULL,
-        total_credits INTEGER NOT NULL DEFAULT 120,
+        total_credits INTEGER NOT NULL,
         description_summary TEXT,
         source_url TEXT,
         source_hash TEXT,
@@ -119,7 +119,7 @@ export async function runMigrations(connectionString?: string) {
         source_pid TEXT,
         course_code TEXT NOT NULL,
         title TEXT NOT NULL,
-        credits INTEGER NOT NULL DEFAULT 3,
+        credits INTEGER NOT NULL,
         is_optional BOOLEAN DEFAULT false,
         sort_order INTEGER NOT NULL DEFAULT 0
       );
@@ -131,7 +131,7 @@ export async function runMigrations(connectionString?: string) {
         source_pid TEXT,
         course_code TEXT NOT NULL,
         title TEXT NOT NULL,
-        credits INTEGER NOT NULL DEFAULT 3,
+        credits INTEGER NOT NULL,
         is_optional BOOLEAN DEFAULT false,
         sort_order INTEGER NOT NULL DEFAULT 0
       );
@@ -164,7 +164,7 @@ export async function runMigrations(connectionString?: string) {
         course_code TEXT PRIMARY KEY,
         source_pid TEXT,
         title TEXT NOT NULL,
-        credits INTEGER NOT NULL DEFAULT 3,
+        credits INTEGER NOT NULL,
         subject_code TEXT,
         source_hash TEXT,
         synced_at TIMESTAMPTZ
@@ -174,7 +174,7 @@ export async function runMigrations(connectionString?: string) {
         course_code TEXT PRIMARY KEY,
         source_pid TEXT,
         title TEXT NOT NULL,
-        credits INTEGER NOT NULL DEFAULT 3,
+        credits INTEGER NOT NULL,
         subject_code TEXT,
         source_hash TEXT,
         synced_at TIMESTAMPTZ

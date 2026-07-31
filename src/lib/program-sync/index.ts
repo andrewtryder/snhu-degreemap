@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { getDbPool } from "./database";
 import { fetchKualiProgramList, fetchKualiProgramDetail, fetchKualiCourseDetail } from "./fetch";
 import { parseProgramPayload, parseCoursePayload, extractCourseReferences, generatePrerequisiteEdges } from "./parse";
+import { NormalizedCourseDetails } from "@/lib/kualiCourseParser";
 import { persistProgramToStaging, persistCoursesToStaging, persistEdgesToStaging } from "./persist";
 import { validateStaging, promoteStagingToLive } from "./promote";
 import { SyncResult, SyncOptions, ProgramSyncState } from "./types";
@@ -120,6 +121,8 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
                 referencedCoursesMap.set(ref.code, ref);
               }
             }
+          } else if (res.error === "Not found") {
+            // Skipped non-program catalog entry or archived item
           } else {
             failedCount++;
             console.warn(`[Program Sync Warning] Failed to fetch/parse PID ${res.pid}: ${res.error}`);
@@ -136,34 +139,34 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
       // 5. Fetch referenced course details & edges
       console.log(`[Program Sync] Processing ${referencedCoursesMap.size} unique referenced courses...`);
       const courseRefs = Array.from(referencedCoursesMap.values());
-      const parsedCourses = [];
+      const parsedCourses: NormalizedCourseDetails[] = courseRefs.map((ref) => ({
+        pid: ref.pid || ref.code,
+        code: ref.code,
+        title: ref.code,
+        credits: 3,
+        description: "",
+        prerequisites: [],
+        corequisites: [],
+      }));
 
+      // Fetch additional Kuali course detail metadata if PID is present
       for (let i = 0; i < courseRefs.length; i += maxConcurrency) {
         const chunk = courseRefs.slice(i, i + maxConcurrency);
-        const chunkResults = await Promise.all(
-          chunk.map(async (ref) => {
+        await Promise.all(
+          chunk.map(async (ref, idx) => {
             if (ref.pid) {
               try {
                 const rawCourse = await fetchKualiCourseDetail(ref.pid, catalogId);
                 if (rawCourse) {
-                  return parseCoursePayload(rawCourse);
+                  const detail = parseCoursePayload(rawCourse);
+                  parsedCourses[i + idx] = detail;
                 }
               } catch {
-                // fallback below
+                // fallback retained
               }
             }
-            return {
-              pid: ref.pid || ref.code,
-              code: ref.code,
-              title: ref.code,
-              credits: 3,
-              description: "",
-              prerequisites: [],
-              corequisites: [],
-            };
           })
         );
-        parsedCourses.push(...chunkResults);
       }
 
       // Persist courses and edges to staging
