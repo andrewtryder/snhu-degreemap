@@ -66,7 +66,7 @@ export function AppFooter() {
               <strong>Unofficial Tool:</strong> SNHU Degree Map is an independent project. It is not affiliated with, endorsed by, or sponsored by Southern New Hampshire University (SNHU). Always verify your official degree plan and prerequisite status with an SNHU academic advisor.
             </p>
             <p className="mt-3 text-[11px] text-outline">
-              Catalog Data Version: <span className="font-semibold">{siteConfig.lastUpdated}</span>
+              <Link href="/data-status" className="hover:text-primary hover:underline font-semibold">View Catalog Data Status</Link>
             </p>
           </div>
         </div>

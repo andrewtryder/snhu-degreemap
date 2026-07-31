@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { ProgramBrowserDialog } from "@/components/ProgramBrowserDialog";
+import { fixturePrograms } from "@/data/fixturePrograms";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -10,7 +11,7 @@ vi.mock("next/navigation", () => ({
 
 describe("ProgramBrowserDialog Component", () => {
   it("renders when open and displays program fixtures", () => {
-    render(<ProgramBrowserDialog isOpen={true} onClose={vi.fn()} />);
+    render(<ProgramBrowserDialog isOpen={true} onClose={vi.fn()} initialPrograms={fixturePrograms} />);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("Computer Science")).toBeInTheDocument();
@@ -19,7 +20,7 @@ describe("ProgramBrowserDialog Component", () => {
   });
 
   it("filters programs by search term", () => {
-    render(<ProgramBrowserDialog isOpen={true} onClose={vi.fn()} />);
+    render(<ProgramBrowserDialog isOpen={true} onClose={vi.fn()} initialPrograms={fixturePrograms} />);
 
     const searchInput = screen.getByRole("searchbox", { name: /Search programs in modal/i });
     fireEvent.change(searchInput, { target: { value: "Cyber" } });
@@ -29,7 +30,7 @@ describe("ProgramBrowserDialog Component", () => {
   });
 
   it("filters programs by degree level filter pill", () => {
-    render(<ProgramBrowserDialog isOpen={true} onClose={vi.fn()} />);
+    render(<ProgramBrowserDialog isOpen={true} onClose={vi.fn()} initialPrograms={fixturePrograms} />);
 
     const rnBtn = screen.getByRole("button", { name: /^RN to BSN$/i });
     fireEvent.click(rnBtn);
