@@ -96,6 +96,46 @@ describe("Program Sync Architecture & Promotion Safeguards", () => {
     expect(result.errors[0]).toContain("Duplicate program slugs found in staging");
   });
 
+  it("blocks promotion when stored edge count falls more than 20% below live", async () => {
+    const mockClient = {
+      query: vi.fn().mockImplementation((queryText: string) => {
+        if (queryText.includes("FILTER") && queryText.includes("degree_courses_stage")) return Promise.resolve({ rows: [{ total: "100", resolved: "95" }] });
+        if (queryText.includes("FILTER") && queryText.includes("degree_courses")) return Promise.resolve({ rows: [{ total: "100", resolved: "95" }] });
+        if (queryText.includes("FROM degree_course_edges_stage;")) return Promise.resolve({ rows: [{ count: "79" }] });
+        if (queryText.includes("FROM degree_course_edges;")) return Promise.resolve({ rows: [{ count: "100" }] });
+        if (queryText.includes("FROM programs_stage;")) return Promise.resolve({ rows: [{ count: "10" }] });
+        if (queryText.includes("FROM programs;")) return Promise.resolve({ rows: [{ count: "10" }] });
+        if (queryText.includes("HAVING COUNT(*) > 1;")) return Promise.resolve({ rows: [] });
+        if (queryText.includes("FROM degree_courses_stage;")) return Promise.resolve({ rows: [{ count: "100" }] });
+        return Promise.resolve({ rows: [] });
+      }),
+    } as unknown as PoolClient;
+
+    const result = await validateStaging(mockClient, 10, 0);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(" ")).toContain("edge count declined more than 20%");
+  });
+
+  it("blocks promotion when resolved-course rate falls more than 20% below live", async () => {
+    const mockClient = {
+      query: vi.fn().mockImplementation((queryText: string) => {
+        if (queryText.includes("FILTER") && queryText.includes("degree_courses_stage")) return Promise.resolve({ rows: [{ total: "100", resolved: "70" }] });
+        if (queryText.includes("FILTER") && queryText.includes("degree_courses")) return Promise.resolve({ rows: [{ total: "100", resolved: "100" }] });
+        if (queryText.includes("FROM degree_course_edges_stage;")) return Promise.resolve({ rows: [{ count: "100" }] });
+        if (queryText.includes("FROM degree_course_edges;")) return Promise.resolve({ rows: [{ count: "100" }] });
+        if (queryText.includes("FROM programs_stage;")) return Promise.resolve({ rows: [{ count: "10" }] });
+        if (queryText.includes("FROM programs;")) return Promise.resolve({ rows: [{ count: "10" }] });
+        if (queryText.includes("HAVING COUNT(*) > 1;")) return Promise.resolve({ rows: [] });
+        if (queryText.includes("FROM degree_courses_stage;")) return Promise.resolve({ rows: [{ count: "100" }] });
+        return Promise.resolve({ rows: [] });
+      }),
+    } as unknown as PoolClient;
+
+    const result = await validateStaging(mockClient, 10, 0);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(" ")).toContain("resolved-course rate declined more than 20%");
+  });
+
   it("formats CLI result object into single-line JSON format", () => {
     const syncResult: SyncResult = {
       action: "promoted",
@@ -104,6 +144,7 @@ describe("Program Sync Architecture & Promotion Safeguards", () => {
       cursor: 10,
       expectedCount: 10,
       importedCount: 10,
+      skippedCount: 0,
       failedCount: 0,
       promoted: true,
       message: "Successfully synchronized",

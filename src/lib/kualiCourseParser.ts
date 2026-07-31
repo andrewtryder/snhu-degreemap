@@ -1,5 +1,13 @@
 import { isRawCourseItem } from "@/types/kualiRaw";
 import { PrerequisiteEdgeDomain } from "@/types/domainCatalog";
+import { load } from "cheerio";
+import { extractNormalizedCourseCodes, getCourseCodeKey, normalizeCourseCode } from "@/lib/courseCode";
+
+export interface CourseRelationship {
+  code: string;
+  type: "prerequisite" | "corequisite";
+  sourceText: string;
+}
 
 export interface NormalizedCourseDetails {
   pid: string;
@@ -10,6 +18,7 @@ export interface NormalizedCourseDetails {
   prerequisiteText?: string;
   prerequisites: string[]; // List of prerequisite course codes
   corequisites: string[]; // List of corequisite course codes
+  relationships?: CourseRelationship[];
   resolutionStatus?: "resolved" | "not_found" | "failed" | "unavailable";
 }
 
@@ -19,7 +28,7 @@ export function parseCourseDetails(raw: unknown): NormalizedCourseDetails {
   }
 
   const pid = raw.pid || raw.id || "unknown-pid";
-  const code = (raw.code || raw.subjectCode?.name || "UNKNOWN").trim().replace("-", " ");
+  const code = normalizeCourseCode(raw.code || raw.subjectCode?.name || "UNKNOWN");
   const title = raw.title || code;
   const description = raw.description || "";
 
@@ -39,7 +48,7 @@ export function parseCourseDetails(raw: unknown): NormalizedCourseDetails {
   }
 
   const prereqText = raw.rulesPrerequisites || "";
-  const { prerequisites, corequisites } = extractCoursePrerequisitesFromText(prereqText);
+  const { prerequisites, corequisites, relationships } = extractCoursePrerequisitesFromText(prereqText);
 
   return {
     pid,
@@ -50,6 +59,7 @@ export function parseCourseDetails(raw: unknown): NormalizedCourseDetails {
     prerequisiteText: prereqText,
     prerequisites,
     corequisites,
+    relationships,
     resolutionStatus: "resolved",
   };
 }
@@ -57,66 +67,76 @@ export function parseCourseDetails(raw: unknown): NormalizedCourseDetails {
 export function extractCoursePrerequisitesFromText(prereqText: string): {
   prerequisites: string[];
   corequisites: string[];
+  relationships: CourseRelationship[];
 } {
-  const prerequisites: string[] = [];
-  const corequisites: string[] = [];
+  const relationships: CourseRelationship[] = [];
 
-  if (!prereqText) return { prerequisites, corequisites };
+  if (!prereqText) return { prerequisites: [], corequisites: [], relationships };
 
-  // Match course patterns like CS-210, IT 145, MAT-140, ENG 130
-  const courseCodeRegex = /\b([A-Z]{2,4})[- ]?(\d{3}[A-Z]?)\b/g;
+  // Kuali has returned both plain text and HTML/list markup. Preserve block
+  // boundaries so a corequisite label cannot reclassify a previous clause.
+  const text = load(
+    prereqText.replace(/<\/(?:p|div|li|h[1-6]|section)>|<br\s*\/?\s*>/gi, "\n")
+  )("body")
+    .text()
+    .replace(/\u00a0/g, " ")
+    .replace(/[\t\r ]+/g, " ")
+    .replace(/ *\n */g, "\n")
+    .trim();
 
-  const isCoreqContext = prereqText.toLowerCase().includes("corequisite");
+  if (!text) return { prerequisites: [], corequisites: [], relationships };
 
-  let match: RegExpExecArray | null;
-  while ((match = courseCodeRegex.exec(prereqText)) !== null) {
-    const subject = match[1];
-    const number = match[2];
-    const formattedCode = `${subject} ${number}`;
+  const labelPattern = /(?:^|[\n.;])\s*(prerequisites?|corequisites?)\s*:?\s*/gi;
+  const labels = Array.from(text.matchAll(labelPattern));
+  const clauses = labels.length
+    ? labels.map((label, index) => ({
+        type: /^corequisite/i.test(label[1]) ? "corequisite" as const : "prerequisite" as const,
+        text: text.slice(label.index!, labels[index + 1]?.index).trim(),
+      }))
+    : [{ type: "prerequisite" as const, text }];
 
-    if (isCoreqContext) {
-      if (!corequisites.includes(formattedCode)) {
-        corequisites.push(formattedCode);
-      }
-    } else {
-      if (!prerequisites.includes(formattedCode)) {
-        prerequisites.push(formattedCode);
+  const seen = new Set<string>();
+  for (const clause of clauses) {
+    for (const code of extractNormalizedCourseCodes(clause.text)) {
+      const key = `${clause.type}:${getCourseCodeKey(code)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        relationships.push({ code, type: clause.type, sourceText: clause.text });
       }
     }
   }
 
-  return { prerequisites, corequisites };
+  return {
+    prerequisites: relationships.filter((relationship) => relationship.type === "prerequisite").map((relationship) => relationship.code),
+    corequisites: relationships.filter((relationship) => relationship.type === "corequisite").map((relationship) => relationship.code),
+    relationships,
+  };
 }
 
 export function generatePrerequisiteEdges(
   courses: NormalizedCourseDetails[]
 ): PrerequisiteEdgeDomain[] {
-  const edges: PrerequisiteEdgeDomain[] = [];
-  const knownCodes = new Set(courses.map((c) => c.code));
+  const edges = new Map<string, PrerequisiteEdgeDomain>();
 
   for (const course of courses) {
-    for (const prereqCode of course.prerequisites) {
-      if (knownCodes.has(prereqCode)) {
-        edges.push({
-          id: `e-${prereqCode.replace(/\s+/g, "")}-${course.code.replace(/\s+/g, "")}`,
-          source: prereqCode,
-          target: course.code,
-          type: "prerequisite",
-        });
-      }
-    }
+    const target = normalizeCourseCode(course.code);
+    const relationships = course.relationships || [
+      ...course.prerequisites.map((code) => ({ code, type: "prerequisite" as const, sourceText: course.prerequisiteText || "" })),
+      ...course.corequisites.map((code) => ({ code, type: "corequisite" as const, sourceText: course.prerequisiteText || "" })),
+    ];
 
-    for (const coreqCode of course.corequisites) {
-      if (knownCodes.has(coreqCode)) {
-        edges.push({
-          id: `e-coreq-${coreqCode.replace(/\s+/g, "")}-${course.code.replace(/\s+/g, "")}`,
-          source: coreqCode,
-          target: course.code,
-          type: "corequisite",
-        });
-      }
+    for (const relationship of relationships) {
+      const source = normalizeCourseCode(relationship.code);
+      const key = `${getCourseCodeKey(source)}:${getCourseCodeKey(target)}:${relationship.type}`;
+      edges.set(key, {
+        id: `e-${relationship.type}-${getCourseCodeKey(source)}-${getCourseCodeKey(target)}`,
+        source,
+        target,
+        type: relationship.type,
+        label: relationship.sourceText || undefined,
+      });
     }
   }
 
-  return edges;
+  return [...edges.values()];
 }

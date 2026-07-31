@@ -286,7 +286,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
               <SparklesIcon className="h-4 w-4 text-tertiary" /> Starting Courses ({startingCourses.length})
             </h3>
             <p className="text-xs text-on-surface-variant">
-              Courses with zero prerequisites open for immediate first-term enrollment:
+              Resolved degree courses with no known prerequisite links (not an enrollment determination):
             </p>
             <div className="flex flex-wrap gap-1.5 pt-1">
               {startingCourses.map((code) => (

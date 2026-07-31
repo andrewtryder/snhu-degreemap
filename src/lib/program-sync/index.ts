@@ -175,6 +175,7 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
         description: "",
         prerequisites: [],
         corequisites: [],
+        resolutionStatus: ref.pid ? "unavailable" : "unavailable",
       }));
 
       // Fetch additional Kuali course detail metadata if PID is present with periodic lease renewal

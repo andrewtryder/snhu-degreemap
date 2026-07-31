@@ -55,6 +55,7 @@ Kuali publishes program requirements as embedded HTML containing semantic sectio
 - `<a href="#/courses/view/{pid}">`: Course reference links containing course code text (e.g. `CS 210`, `IT 145`).
 
 ### Parser Resiliency & Fallback Behavior
+- **Course-code canonicalization**: Course references are normalized to uppercase `SUBJ NNN` display form and a punctuation-free comparison key, so `ACC-201`, `ACC 201`, and `ACC201` resolve to the same course.
 - **Rule Type Mapping**:
   - `Complete all of the following` -> `all_of`
   - `Complete 1 of the following` -> `choose_n` (minimumSelections = 1)
@@ -63,6 +64,13 @@ Kuali publishes program requirements as embedded HTML containing semantic sectio
   - `Concentration` -> `concentration`
 - **Unparsed Content**: Any requirement block that does not conform to expected selectors is preserved as a `textRequirement` string and logged in `warnings`.
 - **Missing Fields**: If optional fields (e.g. `description`, `code`, or `credits`) are null or missing, default fallback values are injected.
+
+### Relationship and uncertainty handling
+
+- `rulesPrerequisites` may be plain text or HTML. Prerequisite and corequisite clauses are classified independently; every explicit course reference is rendered as an informational relationship, including alternatives. The original clause is retained with the edge. The map does not determine whether a student satisfies grade, permission, or choice requirements.
+- Prerequisites outside a degree remain visible as muted external context nodes. They do not count as degree requirements or starting courses.
+- Course records without resolvable detail are labeled unavailable, not found, or failed. They are excluded from sequence insights and are never presented as courses with no prerequisites.
+- Staging promotion compares edge volume and resolved-course rate with live data and rejects declines greater than 20%.
 
 ---
 

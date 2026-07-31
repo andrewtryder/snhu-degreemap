@@ -29,6 +29,9 @@ export interface StagingValidationResult {
   liveProgramCount: number;
   courseCount: number;
   edgeCount: number;
+  liveEdgeCount: number;
+  stagedResolvedCourseRate: number;
+  liveResolvedCourseRate: number;
   errors: string[];
   warnings: string[];
 }

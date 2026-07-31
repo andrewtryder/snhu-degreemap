@@ -95,12 +95,14 @@ describe("kualiParser utility", () => {
 
     expect(groups).toHaveLength(2);
     expect(groups[0].ruleType).toBe("all_of");
-    expect(groups[0].courseRequirements).toHaveLength(1);
-    expect(groups[0].courseRequirements[0].courseCode).toBe("MAT140");
+    expect(groups[0].children).toHaveLength(1);
+    expect(groups[0].children[0].courseRequirements).toHaveLength(1);
+    expect(groups[0].children[0].courseRequirements[0].courseCode).toBe("MAT 140");
 
-    expect(groups[1].ruleType).toBe("choose_n");
-    expect(groups[1].minimumSelections).toBe(1);
-    expect(groups[1].courseRequirements).toHaveLength(2);
+    expect(groups[1].ruleType).toBe("all_of");
+    expect(groups[1].children[0].ruleType).toBe("choose_n");
+    expect(groups[1].children[0].minimumSelections).toBe(1);
+    expect(groups[1].children[0].courseRequirements).toHaveLength(2);
     expect(warnings).toHaveLength(0);
   });
 

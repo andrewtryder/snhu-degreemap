@@ -56,7 +56,7 @@ export default function MethodologyPage() {
               </div>
               <h2 className="text-base font-bold text-on-surface">3. Prerequisite Graph Analysis</h2>
               <p className="text-xs text-on-surface-variant leading-relaxed">
-                Course descriptions undergo regex pattern analysis to identify prerequisite links, corequisites, and starting courses (zero in-degree). Graphs are rendered using React Flow and Dagre.
+                Course descriptions are normalized across catalog formatting variants, then prerequisite and corequisite clauses are parsed independently. Explicit course references, including external prerequisites, are shown as informational links; unresolved course records are excluded from starting-course insights. Graphs are rendered using React Flow and Dagre.
               </p>
             </Card>
           </div>

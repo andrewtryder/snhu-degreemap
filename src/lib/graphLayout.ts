@@ -148,6 +148,7 @@ export function layoutDegreeGraph(
   direction: "TB" | "LR" = "TB"
 ): { nodes: Node[]; edges: Edge[] } {
   const { nodes, edges } = buildGraphNodesAndEdges(nodesData, edgesData);
-  const layoutedNodes = applyDagreLayout(nodes, edges, direction);
+  const layoutEdges = edges.filter((edge) => edgesData.find((data) => data.id === edge.id)?.type === "prerequisite");
+  const layoutedNodes = applyDagreLayout(nodes, layoutEdges, direction);
   return { nodes: layoutedNodes, edges };
 }
