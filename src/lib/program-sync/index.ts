@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getDbPool } from "./database";
-import { fetchKualiProgramList, fetchKualiProgramDetail, fetchKualiCourseDetail } from "./fetch";
+import { fetchKualiProgramList, fetchKualiProgramDetail, fetchKualiCourseDetail, fetchKualiCourseList } from "./fetch";
 import { parseProgramPayload, parseCoursePayload, extractCourseReferences, generatePrerequisiteEdges } from "./parse";
 import { NormalizedCourseDetails } from "@/lib/kualiCourseParser";
 import { persistProgramToStaging, persistCoursesToStaging, persistEdgesToStaging } from "./persist";
@@ -167,8 +167,16 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
       // 5. Fetch referenced course details & edges
       console.log(`[Program Sync] Processing ${referencedCoursesMap.size} unique referenced courses...`);
       const courseRefs = Array.from(referencedCoursesMap.values());
-      const parsedCourses: NormalizedCourseDetails[] = courseRefs.map((ref) => ({
-        pid: ref.pid || ref.code,
+      const rawCourseList = await fetchKualiCourseList(catalogId);
+      const coursePidByCatalogId = new Map(
+        rawCourseList.flatMap((course) => (course.id && course.pid ? [[course.id, course.pid] as const] : []))
+      );
+      const resolvedCourseRefs = courseRefs.map((ref) => ({
+        ...ref,
+        detailPid: ref.pid ? coursePidByCatalogId.get(ref.pid) : undefined,
+      }));
+      const parsedCourses: NormalizedCourseDetails[] = resolvedCourseRefs.map((ref) => ({
+        pid: ref.detailPid || ref.pid || ref.code,
         code: ref.code,
         title: ref.code,
         credits: null,
@@ -179,15 +187,15 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
       }));
 
       // Fetch additional Kuali course detail metadata if PID is present with periodic lease renewal
-      for (let i = 0; i < courseRefs.length; i += maxConcurrency) {
-        const chunk = courseRefs.slice(i, i + maxConcurrency);
+      for (let i = 0; i < resolvedCourseRefs.length; i += maxConcurrency) {
+        const chunk = resolvedCourseRefs.slice(i, i + maxConcurrency);
         await Promise.all(
           chunk.map(async (ref, idx) => {
-            if (ref.pid) {
+            if (ref.detailPid) {
               try {
-                const rawCourse = await fetchKualiCourseDetail(ref.pid, catalogId);
+                const rawCourse = await fetchKualiCourseDetail(ref.detailPid, catalogId);
                 if (rawCourse) {
-                  const detail = parseCoursePayload(rawCourse);
+                  const detail = parseCoursePayload(rawCourse, ref.code);
                   parsedCourses[i + idx] = detail;
                 } else {
                   parsedCourses[i + idx].resolutionStatus = "not_found";
