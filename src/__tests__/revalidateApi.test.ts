@@ -62,4 +62,16 @@ describe("POST /api/revalidate Endpoint", () => {
     expect(json.revalidated).toBe(true);
     expect(json.tag).toBe("program-data");
   });
+
+  it("accepts the dedicated revalidation header", async () => {
+    process.env.REVALIDATE_SECRET = "correct-secret-123";
+
+    const request = new Request("http://localhost/api/revalidate", {
+      method: "POST",
+      headers: { "x-revalidate-secret": "correct-secret-123" },
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(200);
+  });
 });

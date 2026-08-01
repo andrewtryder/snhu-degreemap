@@ -16,7 +16,9 @@ export async function POST(request: Request) {
   }
 
   const authHeader = request.headers.get("authorization");
-  const token = authHeader?.replace(/^Bearer\s+/i, "");
+  const token =
+    authHeader?.replace(/^Bearer\s+/i, "") ??
+    request.headers.get("x-revalidate-secret");
 
   if (!token || token !== secret) {
     return NextResponse.json(
