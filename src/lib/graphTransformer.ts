@@ -1,4 +1,5 @@
-import { CourseNodeData, PrerequisiteEdgeData } from "@/types/program";
+import { CourseNodeData, PrerequisiteEdgeData, RequirementGroup } from "@/types/program";
+import { normalizeCourseCode } from "@/lib/courseCode";
 import {
   DegreeGraphNodeData,
   DegreeGraphEdgeData,
@@ -179,7 +180,8 @@ export function calculateLongestKnownPath(
 
 export function buildDegreeGraph(
   rawNodes: CourseNodeData[],
-  rawEdges: PrerequisiteEdgeData[]
+  rawEdges: PrerequisiteEdgeData[],
+  requirementGroups: RequirementGroup[] = []
 ): CompleteDegreeGraph {
   const nodesData = deduplicateCourseNodes(rawNodes);
   const analyzableNodes = nodesData.filter(
@@ -205,6 +207,80 @@ export function buildDegreeGraph(
     ...edge,
     edgeType: (edge.type as DegreeGraphEdgeData["edgeType"]) || "prerequisite",
   }));
+
+  const courseByCode = new Map(nodesData.map((node) => [normalizeCourseCode(node.code), node]));
+  const addRequirement = (
+    group: Pick<RequirementGroup, "id" | "title" | "category" | "ruleType" | "minimumSelections" | "minimumCredits" | "ruleMetadata" | "sourceText" | "items">,
+    parentRequirementId?: string
+  ) => {
+    const id = `requirement_${group.id}`;
+    nodes.push({
+      id,
+      code: "Requirement",
+      title: group.title,
+      credits: null,
+      groupCode: group.id,
+      groupName: group.title,
+      groupCategory: group.category,
+      resolutionStatus: "resolved",
+      nodeType: "requirement_group",
+      parentRequirementId,
+      ruleMetadata: {
+        ...(group.ruleMetadata || {}),
+        minimumCredits: group.minimumCredits ?? group.ruleMetadata?.minimumCredits,
+        minimumSelections: group.minimumSelections ?? group.ruleMetadata?.minimumSelections,
+        sourceText: group.sourceText || group.ruleMetadata?.sourceText,
+      },
+      sourceText: group.sourceText,
+    });
+
+    for (const code of group.ruleMetadata?.explicitCourseCodes || []) {
+      const course = courseByCode.get(normalizeCourseCode(code));
+      if (course) {
+        edges.push({
+          id: `membership_${id}_${course.id}`,
+          source: id,
+          target: course.id,
+          type: "requirement_membership",
+          edgeType: "requirement_membership",
+          label: "option within requirement",
+        });
+      }
+    }
+
+    group.items.forEach((item, index) => {
+      if (item.type === "group") {
+        addRequirement({
+          id: item.id,
+          title: item.title,
+          category: group.category,
+          ruleType: item.ruleType,
+          minimumSelections: item.minimumSelections,
+          minimumCredits: item.minimumCredits,
+          ruleMetadata: item.ruleMetadata,
+          sourceText: item.sourceText,
+          items: item.subItems || [],
+        }, id);
+      } else if (item.sourceText || item.textKind) {
+        nodes.push({
+          id: `information_${group.id}_${index}`,
+          code: item.textKind === "policy" ? "Policy note" : "Information",
+          title: item.title,
+          credits: null,
+          groupCode: group.id,
+          groupName: group.title,
+          groupCategory: group.category,
+          resolutionStatus: "resolved",
+          nodeType: item.textKind === "unparsed" ? "unparsed_requirement" : "informational",
+          parentRequirementId: id,
+          sourceText: item.sourceText || item.title,
+          textKind: item.textKind || "informational",
+        });
+      }
+    });
+  };
+
+  requirementGroups.forEach((group) => addRequirement(group));
 
   const insights: DegreeGraphInsights = {
     startingCourses,

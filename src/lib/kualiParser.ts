@@ -14,6 +14,7 @@ import {
   ParserWarning,
 } from "@/types/domainCatalog";
 import { normalizeCourseCode } from "@/lib/courseCode";
+import { RequirementRuleMetadata } from "@/types/program";
 
 export function hashSourcePayload(raw: unknown): string {
   const jsonStr = JSON.stringify(raw ?? "");
@@ -180,6 +181,8 @@ export function parseRequirementTree(
         children: [],
         courseRequirements: [],
         textRequirements: [],
+        rawText: headerSpanText.replace(/\s+/g, " ").trim(),
+        ruleMetadata: extractRuleMetadata(headerSpanText, []),
         warnings: [],
       };
 
@@ -237,8 +240,36 @@ function directCourseAnchors($: cheerio.CheerioAPI, owner: Element): Element[] {
 function getDirectRuleText($: cheerio.CheerioAPI, element: Element): string {
   const clone = $(element).clone();
   clone.find("ul, ol").remove();
-  clone.find("a").remove();
   return clone.text().replace(/\s+/g, " ").trim();
+}
+
+function extractRuleMetadata(
+  sourceText: string,
+  courses: CourseRequirementDomain[]
+): RequirementRuleMetadata {
+  const metadata: RequirementRuleMetadata = { sourceText };
+  const creditMatch = sourceText.match(/(\d+)\s*credit\(s\)/i);
+  const rangeMatch = sourceText.match(/\b(\d{3})\s*(?:-|–|to)\s*(\d{3})\b/);
+  const subjectMatch = sourceText.match(
+    /(?:from\s+(?:subject\(s\):\s*)?)([A-Z]{2,4}(?:\s*,\s*[A-Z]{2,4})*(?:\s*,?\s*(?:or|and)\s*[A-Z]{2,4})?)\s+(?:within|from|in)\b/
+  );
+
+  if (creditMatch) metadata.minimumCredits = Number(creditMatch[1]);
+  if (rangeMatch) {
+    metadata.minimumCourseLevel = Number(rangeMatch[1]);
+    metadata.maximumCourseLevel = Number(rangeMatch[2]);
+  }
+  if (subjectMatch) {
+    metadata.eligibleSubjectCodes = subjectMatch[1].match(/\b[A-Z]{2,4}\b/g) || undefined;
+  }
+  if (courses.length > 0) metadata.explicitCourseCodes = courses.map((course) => course.courseCode);
+
+  const policyNotes = sourceText
+    .split(/(?<=[.!?])\s+/)
+    .filter((sentence) => /\bpolicy\b|must meet|eligibility/i.test(sentence.trim()));
+  if (policyNotes.length > 0) metadata.policyNotes = policyNotes;
+
+  return metadata;
 }
 
 function parseCourseAnchor(
@@ -293,6 +324,7 @@ function parseRuleChildren(
         children: [],
         courseRequirements: [],
         textRequirements: [],
+        rawText: ruleText,
         warnings: [],
       };
 
@@ -304,6 +336,7 @@ function parseRuleChildren(
           group.courseRequirements.push(course);
         }
       });
+      group.ruleMetadata = extractRuleMetadata(ruleText, group.courseRequirements);
       if (anchors.length === 0 && ruleText && !/^(complete\s+)?(?:all|\d+\s+of)/i.test(ruleText)) {
         group.textRequirements.push(ruleText);
       }

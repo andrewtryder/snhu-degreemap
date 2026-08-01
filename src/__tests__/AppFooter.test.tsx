@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { AppFooter } from "@/components/AppFooter";
+import { AppFooter, formatCatalogLastUpdated } from "@/components/AppFooter";
 
 describe("AppFooter Component", () => {
   it("renders the two-column navigation and disclaimer footer", async () => {
@@ -22,5 +22,10 @@ describe("AppFooter Component", () => {
   it("shows an honest fallback when synchronization data is unavailable", async () => {
     render(await AppFooter({ lastUpdated: null }));
     expect(screen.getByText("Last Updated: Not available")).toBeInTheDocument();
+  });
+
+  it("formats cached timestamp strings and safely rejects invalid values", () => {
+    expect(formatCatalogLastUpdated("2026-07-31T22:52:52.021Z")).toBe("Last Updated: July 31, 2026");
+    expect(formatCatalogLastUpdated("not-a-date")).toBe("Last Updated: Not available");
   });
 });

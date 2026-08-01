@@ -1,4 +1,4 @@
-import { CourseNodeData, PrerequisiteEdgeData } from "./program";
+import { CourseNodeData, PrerequisiteEdgeData, RequirementRuleMetadata } from "./program";
 
 export type DegreeNodeType =
   | "course"
@@ -20,6 +20,10 @@ export interface DegreeGraphNodeData extends CourseNodeData {
   depth?: number;
   inDegree?: number;
   outDegree?: number;
+  parentRequirementId?: string;
+  ruleMetadata?: RequirementRuleMetadata;
+  sourceText?: string;
+  textKind?: "informational" | "policy" | "unparsed";
 }
 
 export interface DegreeGraphEdgeData extends PrerequisiteEdgeData {

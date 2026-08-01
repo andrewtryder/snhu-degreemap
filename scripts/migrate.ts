@@ -89,6 +89,7 @@ export async function runMigrations(connectionString?: string) {
         sort_order INTEGER NOT NULL DEFAULT 0,
         warning_count INTEGER DEFAULT 0,
         raw_excerpt TEXT,
+        rule_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
         UNIQUE(program_id, source_path)
       );
 
@@ -106,6 +107,7 @@ export async function runMigrations(connectionString?: string) {
         sort_order INTEGER NOT NULL DEFAULT 0,
         warning_count INTEGER DEFAULT 0,
         raw_excerpt TEXT,
+        rule_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
         UNIQUE(program_id, source_path)
       );
     `);
@@ -257,6 +259,8 @@ export async function runMigrations(connectionString?: string) {
       ALTER TABLE degree_courses_stage ALTER COLUMN credits DROP NOT NULL;
       ALTER TABLE degree_courses_stage ALTER COLUMN credits DROP DEFAULT;
       ALTER TABLE degree_courses_stage ADD COLUMN IF NOT EXISTS resolution_status TEXT DEFAULT 'resolved';
+      ALTER TABLE program_requirement_groups ADD COLUMN IF NOT EXISTS rule_metadata JSONB NOT NULL DEFAULT '{}'::jsonb;
+      ALTER TABLE program_requirement_groups_stage ADD COLUMN IF NOT EXISTS rule_metadata JSONB NOT NULL DEFAULT '{}'::jsonb;
 
       ALTER TABLE program_sync_items ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
       ALTER TABLE program_sync_items ADD COLUMN IF NOT EXISTS reason TEXT;

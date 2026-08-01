@@ -2,6 +2,17 @@ export type DegreeLevel = "BS" | "BA" | "AS" | "AA" | "MS" | "MA" | "MBA" | "RN 
 
 export type GroupCategory = "gened" | "core" | "major" | "elective" | "other";
 
+export interface RequirementRuleMetadata {
+  minimumCredits?: number;
+  minimumSelections?: number;
+  eligibleSubjectCodes?: string[];
+  minimumCourseLevel?: number;
+  maximumCourseLevel?: number;
+  explicitCourseCodes?: string[];
+  policyNotes?: string[];
+  sourceText?: string;
+}
+
 export interface PrerequisiteRequirement {
   type: "course" | "choice" | "min_credits" | "group";
   courseId?: string;
@@ -32,7 +43,7 @@ export interface PrerequisiteEdgeData {
   id: string;
   source: string;
   target: string;
-  type?: "prerequisite" | "corequisite" | "recommended";
+  type?: "prerequisite" | "corequisite" | "recommended" | "requirement_membership";
   label?: string;
 }
 
@@ -50,6 +61,9 @@ export interface RequirementItem {
   minimumSelections?: number | null;
   maximumSelections?: number | null;
   minimumCredits?: number | null;
+  ruleMetadata?: RequirementRuleMetadata;
+  sourceText?: string;
+  textKind?: "informational" | "policy" | "unparsed";
 }
 
 export interface RequirementGroup {
@@ -68,6 +82,8 @@ export interface RequirementGroup {
   minimumSelections?: number | null;
   maximumSelections?: number | null;
   minimumCredits?: number | null;
+  ruleMetadata?: RequirementRuleMetadata;
+  sourceText?: string;
   description?: string;
   items: RequirementItem[];
 }

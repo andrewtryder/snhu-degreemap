@@ -1,4 +1,5 @@
 import { GroupCategory } from "./program";
+import { RequirementRuleMetadata } from "./program";
 
 export type RuleType =
   | "all_of"
@@ -38,6 +39,8 @@ export interface RequirementGroupDomain {
   children: RequirementGroupDomain[];
   courseRequirements: CourseRequirementDomain[];
   textRequirements: string[];
+  rawText?: string;
+  ruleMetadata?: RequirementRuleMetadata;
   warnings?: ParserWarning[];
 }
 

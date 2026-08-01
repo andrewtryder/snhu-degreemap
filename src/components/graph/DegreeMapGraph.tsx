@@ -11,11 +11,13 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { CourseNodeData, PrerequisiteEdgeData, GroupCategory } from "@/types/program";
+import { CourseNodeData, PrerequisiteEdgeData, GroupCategory, RequirementGroup } from "@/types/program";
 import { layoutDegreeGraph } from "@/lib/graphLayout";
 import { buildDegreeGraph } from "@/lib/graphTransformer";
 import { downloadGraphSvg, triggerPrintDegreeMap } from "@/lib/exportGraph";
 import { CustomCourseNode } from "./CustomCourseNode";
+import { RequirementRuleNode } from "./RequirementRuleNode";
+import { InformationalNode } from "./InformationalNode";
 import { CourseDetailDrawer } from "./CourseDetailDrawer";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Button } from "@/components/ui/Button";
@@ -32,11 +34,14 @@ import {
 
 const nodeTypes = {
   courseNode: CustomCourseNode,
+  requirementRuleNode: RequirementRuleNode,
+  informationalNode: InformationalNode,
 };
 
 export interface DegreeMapGraphProps {
   nodesData: CourseNodeData[];
   edgesData: PrerequisiteEdgeData[];
+  requirementGroups?: RequirementGroup[];
   programTitle: string;
   catalogYear?: string;
   sourceName?: string;
@@ -47,6 +52,7 @@ export interface DegreeMapGraphProps {
 export function DegreeMapGraph({
   nodesData,
   edgesData,
+  requirementGroups = [],
   programTitle,
   catalogYear = "2025-2026",
   sourceName = "SNHU Academic Catalog",
@@ -60,11 +66,11 @@ export function DegreeMapGraph({
   const [highlightMode, setHighlightMode] = useState<"none" | "starting" | "critical">("none");
 
   // Run graph transformer analysis
-  const fullGraph = useMemo(() => buildDegreeGraph(nodesData, edgesData), [nodesData, edgesData]);
+  const fullGraph = useMemo(() => buildDegreeGraph(nodesData, edgesData, requirementGroups), [nodesData, edgesData, requirementGroups]);
 
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
-    () => layoutDegreeGraph(nodesData, edgesData),
-    [nodesData, edgesData]
+    () => layoutDegreeGraph(fullGraph.nodes, fullGraph.edges),
+    [fullGraph]
   );
 
   const [nodes, , onNodesChange] = useNodesState<Node>(initialNodes);
@@ -77,6 +83,9 @@ export function DegreeMapGraph({
   const processedNodes = useMemo(() => {
     return nodes.map((node) => {
       const course = node.data as unknown as CourseNodeData;
+      if ((course as unknown as { nodeType?: string }).nodeType && (course as unknown as { nodeType?: string }).nodeType !== "course" && (course as unknown as { nodeType?: string }).nodeType !== "elective_placeholder") {
+        return node;
+      }
       const matchesSearch =
         mapSearch.trim() === "" ||
         course.code.toLowerCase().includes(mapSearch.toLowerCase()) ||
@@ -123,8 +132,8 @@ export function DegreeMapGraph({
       programTitle,
       catalogYear,
       sourceName,
-      nodes: nodesData,
-      edges: edgesData,
+      nodes: fullGraph.nodes,
+      edges: fullGraph.edges,
     });
   };
 
@@ -133,8 +142,8 @@ export function DegreeMapGraph({
       programTitle,
       catalogYear,
       sourceName,
-      nodes: nodesData,
-      edges: edgesData,
+      nodes: fullGraph.nodes,
+      edges: fullGraph.edges,
     });
   };
 

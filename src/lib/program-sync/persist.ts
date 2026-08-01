@@ -64,8 +64,8 @@ async function persistGroupToStaging(
     INSERT INTO program_requirement_groups_stage (
       id, program_id, parent_group_id, source_path, title, category,
       rule_type, minimum_selections, maximum_selections, minimum_credits,
-      sort_order, warning_count, raw_excerpt
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      sort_order, warning_count, raw_excerpt, rule_metadata
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb)
     ON CONFLICT (program_id, source_path) DO UPDATE SET
       title = EXCLUDED.title,
       category = EXCLUDED.category,
@@ -88,7 +88,8 @@ async function persistGroupToStaging(
       group.minimumCredits || null,
       sortOrder,
       (group.warnings || []).length,
-      null,
+      group.rawText || null,
+      JSON.stringify(group.ruleMetadata || {}),
     ]
   );
 
