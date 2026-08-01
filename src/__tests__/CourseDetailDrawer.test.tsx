@@ -9,7 +9,7 @@ const failedCourse: CourseNodeData = {
   title: "Research Methods",
   credits: 3,
   groupCode: "major",
-  groupName: "Major",
+  groupName: "Major Courses",
   groupCategory: "major",
   prerequisites: [],
   corequisites: ["MAT240"],
@@ -28,6 +28,28 @@ const corequisite: CourseNodeData = {
   resolutionStatus: "unavailable",
 };
 
+const prereqCourse: CourseNodeData = {
+  id: "CS110",
+  code: "CS 110",
+  title: "Intro",
+  credits: 3,
+  groupCode: "major",
+  groupName: "Complete all of the following",
+  groupCategory: "major",
+};
+
+const courseWithPrereq: CourseNodeData = {
+  id: "CS210",
+  code: "CS 210",
+  title: "Programming",
+  credits: 3,
+  groupCode: "major",
+  groupName: "Major Courses",
+  groupCategory: "major",
+  prerequisites: ["CS110"],
+  resolutionStatus: "resolved",
+};
+
 describe("CourseDetailDrawer relationship uncertainty", () => {
   it("separates corequisites and never calls an unresolved course a starting course", () => {
     render(<CourseDetailDrawer course={failedCourse} onClose={() => undefined} allCourses={[failedCourse, corequisite]} />);
@@ -37,5 +59,21 @@ describe("CourseDetailDrawer relationship uncertainty", () => {
     expect(screen.getByText("MAT 240")).toBeInTheDocument();
     expect(screen.getByText(/Prerequisite relationships are unavailable/i)).toBeInTheDocument();
     expect(screen.queryByText(/Starting course open for direct enrollment/i)).not.toBeInTheDocument();
+  });
+
+  it("does not render requirement-status or group-name badges", () => {
+    render(
+      <CourseDetailDrawer
+        course={courseWithPrereq}
+        onClose={() => undefined}
+        allCourses={[courseWithPrereq, prereqCourse]}
+      />,
+    );
+
+    expect(screen.queryByText("Major Courses")).not.toBeInTheDocument();
+    expect(screen.queryByText("Complete all of the following")).not.toBeInTheDocument();
+    expect(screen.queryByText("Degree Requirement Note:")).not.toBeInTheDocument();
+    expect(screen.getByText("CS 110")).toBeInTheDocument();
+    expect(screen.getByText("Intro")).toBeInTheDocument();
   });
 });

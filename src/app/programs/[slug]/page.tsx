@@ -5,17 +5,15 @@ import { Metadata } from "next";
 import { AppHeader } from "@/components/AppHeader";
 import { AppFooter } from "@/components/AppFooter";
 import { Card } from "@/components/ui/Card";
-import { Badge, getGroupCategoryVariant } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/Badge";
 import { DegreeMapGraph } from "@/components/graph/DegreeMapGraph";
 import { getCatalogLastUpdated, getProgramBySlug } from "@/lib/serverData";
 import { buildDegreeGraph } from "@/lib/graphTransformer";
-import { calculateProgramTransferInsights } from "@/lib/transferIntegration";
-import { RequirementGroup, RequirementItem } from "@/types/program";
+import { calculateProgramTransferInsights, getTransferUrlForCourse } from "@/lib/transferIntegration";
 import {
   CalendarIcon,
   ExternalLinkIcon,
   AlertTriangleIcon,
-  HelpCircleIcon,
   SparklesIcon,
   ZapIcon,
   GitBranchIcon,
@@ -23,66 +21,6 @@ import {
 
 export const dynamicParams = true;
 export const revalidate = false;
-
-export function hasActionableRequirements(items: RequirementItem[]): boolean {
-  return items.some((item) => {
-    if (item.type === "group") return hasActionableRequirements(item.subItems || []);
-    if (item.isUnparsed || item.id.startsWith("txt_") || /^n\/?a$/i.test(item.title.trim())) return false;
-    return item.type === "single" || item.type === "choice" || item.type === "elective";
-  });
-}
-
-export function getRequirementInstruction(group: Pick<RequirementGroup, "ruleType" | "minimumSelections" | "minimumCredits" | "items">): string | null {
-  const actionable = hasActionableRequirements(group.items);
-
-  switch (group.ruleType) {
-    case "all_of":
-      return actionable ? "Complete all of the following" : null;
-    case "choose_n":
-      return actionable && group.minimumSelections ? `Choose ${group.minimumSelections} of the following` : null;
-    case "choose_credits":
-      return actionable && group.minimumCredits ? `Complete at least ${group.minimumCredits} credits` : null;
-    case "free_elective":
-    case "elective":
-      return actionable ? "Free electives" : null;
-    default:
-      return null;
-  }
-}
-
-export function RequirementTreeItems({ items, depth = 0 }: { items: RequirementItem[]; depth?: number }) {
-  if (items.length === 0) return null;
-
-  return (
-    <ul className={`space-y-2 ${depth > 0 ? "ml-3 border-l border-surface-variant pl-3" : ""}`}>
-      {items.map((item) => {
-        const isGroup = item.type === "group";
-        return (
-          <li key={item.id} className="rounded-md border border-surface-variant bg-surface-container-low p-3 text-xs">
-            <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-              <div>
-                <span className="font-bold text-on-surface">{item.title}</span>
-                {item.description && (
-                  <p className="mt-0.5 text-[11px] text-on-surface-variant">{item.description}</p>
-                )}
-                {isGroup && item.sourceText && (
-                  <details className="mt-2 text-[11px] text-on-surface-variant">
-                    <summary className="cursor-pointer font-semibold">Complete catalog rule text</summary>
-                    <p className="mt-1 whitespace-pre-wrap leading-relaxed">{item.sourceText}</p>
-                  </details>
-                )}
-              </div>
-              <span className="shrink-0 font-mono font-semibold text-primary">
-                {item.credits == null ? "N/A" : `${item.credits} Credits`}
-              </span>
-            </div>
-            {isGroup && <RequirementTreeItems items={item.subItems || []} depth={depth + 1} />}
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
 
 export async function generateStaticParams() {
   return [];
@@ -143,6 +81,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
   const { startingCourses, criticalCourses, longestPath, longestPathLength, hasCycle, cycleNodes } = graphData.insights;
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "https://snhu-degreemap.vercel.app";
+  const transferInsights = calculateProgramTransferInsights(program);
 
   // Safe JSON-LD Structured Data
   const jsonLd = {
@@ -151,34 +90,34 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
       {
         "@type": "WebSite",
         "@id": `${baseUrl}/#website`,
-        "url": baseUrl,
-        "name": "SNHU Degree Map",
-        "description": "Unofficial degree requirement and course prerequisite visualization tool",
+        url: baseUrl,
+        name: "SNHU Degree Map",
+        description: "Unofficial degree requirement and course prerequisite visualization tool",
       },
       {
         "@type": "WebPage",
         "@id": `${baseUrl}/programs/${program.slug}#webpage`,
-        "url": `${baseUrl}/programs/${program.slug}`,
-        "name": `${program.title} Degree Map`,
-        "description": program.description,
-        "isPartOf": { "@id": `${baseUrl}/#website` },
+        url: `${baseUrl}/programs/${program.slug}`,
+        name: `${program.title} Degree Map`,
+        description: program.description,
+        isPartOf: { "@id": `${baseUrl}/#website` },
       },
       {
         "@type": "BreadcrumbList",
-        "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": "Home", "item": baseUrl },
-          { "@type": "ListItem", "position": 2, "name": "Programs", "item": `${baseUrl}/programs` },
-          { "@type": "ListItem", "position": 3, "name": program.title, "item": `${baseUrl}/programs/${program.slug}` },
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: baseUrl },
+          { "@type": "ListItem", position: 2, name: "Programs", item: `${baseUrl}/programs` },
+          { "@type": "ListItem", position: 3, name: program.title, item: `${baseUrl}/programs/${program.slug}` },
         ],
       },
       {
         "@type": "EducationalOccupationalProgram",
-        "name": program.title,
-        "educationalCredentialAwarded": program.credential,
-        "provider": {
+        name: program.title,
+        educationalCredentialAwarded: program.credential,
+        provider: {
           "@type": "EducationalOrganization",
-          "name": "Southern New Hampshire University (Referenced Source)",
-          "sameAs": "https://www.snhu.edu",
+          name: "Southern New Hampshire University (Referenced Source)",
+          sameAs: "https://www.snhu.edu",
         },
       },
     ],
@@ -186,13 +125,8 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
 
   return (
     <div className="mx-auto w-full max-w-[var(--spacing-container-max)] px-4 py-8 md:px-8 space-y-6">
-      {/* JSON-LD Script */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-2 text-xs text-on-surface-variant">
         <Link href="/" className="hover:text-primary hover:underline">
           Home
@@ -205,7 +139,6 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
         <span className="font-semibold text-on-surface">{program.title}</span>
       </nav>
 
-      {/* Program Header Box */}
       <div className="rounded-xl border border-surface-variant bg-surface-container-lowest p-6 shadow-sm space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1 max-w-3xl">
@@ -219,78 +152,66 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
             <h1 className="font-[family-name:var(--font-headline)] text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
               {program.title}
             </h1>
-            <p className="text-sm font-semibold text-on-surface">
-              {program.credential}
-            </p>
+            <p className="text-sm font-semibold text-on-surface">{program.credential}</p>
           </div>
 
-          <a
-            href={program.sourceCatalogUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-medium text-on-surface hover:bg-surface-container hover:text-primary transition-colors"
-          >
-            <span>Official SNHU Catalog</span>
-            <ExternalLinkIcon className="h-3.5 w-3.5" />
-          </a>
+          {program.sourceCatalogUrl && (
+            <a
+              href={program.sourceCatalogUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-medium text-on-surface hover:bg-surface-container hover:text-primary transition-colors"
+            >
+              <span>Official SNHU Catalog</span>
+              <ExternalLinkIcon className="h-3.5 w-3.5" />
+            </a>
+          )}
         </div>
 
-        <p className="text-xs sm:text-sm leading-relaxed text-on-surface-variant max-w-4xl">
-          {program.description}
-        </p>
-
+        <p className="text-xs sm:text-sm leading-relaxed text-on-surface-variant max-w-4xl">{program.description}</p>
       </div>
 
-      {/* Program Transfer Opportunities Summary Card (snhu-transfers integration) */}
-      {(() => {
-        const transferInsights = calculateProgramTransferInsights(program);
-        const transfersUrl = process.env.NEXT_PUBLIC_TRANSFERS_URL || "https://snhu-transfers.vercel.app";
-        return (
-          <Card className="border-emerald-200 bg-emerald-50/50 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="border-emerald-500 text-emerald-800 bg-white">
-                    Transfer Integration
-                  </Badge>
-                  <span className="text-xs font-bold text-emerald-900">
-                    {transferInsights.transferableCoursesCount} of {transferInsights.totalCourses} Required Courses Have Known Transfer Equivalencies ({transferInsights.coveragePercentage}%)
-                  </span>
-                </div>
-              </div>
+      <Card className="border-emerald-200 bg-emerald-50/50 space-y-2">
+        <h2 className="text-sm font-bold text-emerald-950">Transfer Integration</h2>
+        <p className="text-xs text-emerald-900">
+          {transferInsights.transferableCoursesCount} of {transferInsights.totalCourses} required courses have known
+          transfer equivalencies ({transferInsights.coveragePercentage}%).
+        </p>
 
-              {transfersUrl && (
+        {transferInsights.transferableCourseCodes.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <span className="text-xs font-semibold text-emerald-900 self-center mr-1">
+              Courses with known transfer listings:
+            </span>
+            {transferInsights.transferableCourseCodes.map((code) => {
+              const href = getTransferUrlForCourse(code);
+              if (!href) {
+                return (
+                  <span
+                    key={code}
+                    className="rounded-full border border-emerald-300 bg-white px-2.5 py-0.5 text-xs font-medium text-emerald-800"
+                  >
+                    {code}
+                  </span>
+                );
+              }
+              return (
                 <a
-                  href={transfersUrl}
+                  key={code}
+                  href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 transition-colors"
+                  aria-label={`View transfer equivalencies for ${code}`}
+                  className="rounded-full border border-emerald-300 bg-white px-2.5 py-0.5 text-xs font-medium text-emerald-800 transition-colors hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
                 >
-                  <span>Explore All Options on snhu-transfers</span>
-                  <ExternalLinkIcon className="h-3.5 w-3.5" />
-                </a>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              <span className="text-xs font-semibold text-emerald-900 self-center mr-1">
-                Courses with known transfer listings:
-              </span>
-              {transferInsights.transferableCourseCodes.map((code) => (
-                <Badge key={code} variant="outline" className="border-emerald-300 bg-white text-emerald-800">
                   {code}
-                </Badge>
-              ))}
-            </div>
+                </a>
+              );
+            })}
+          </div>
+        )}
+      </Card>
 
-            <p className="text-[11px] text-emerald-800 leading-relaxed pt-1 border-t border-emerald-200">
-              <strong>Transfer Evaluation Disclaimer:</strong> Transfer equivalency data is snapshot from snhu-transfers. Listed options do not guarantee cost or time savings, and every transfer course requires official evaluation and approval by SNHU admissions and academic advising.
-            </p>
-          </Card>
-        );
-      })()}
-
-      {/* Degree Map Graph Section */}
       <div className="space-y-4">
         <DegreeMapGraph
           nodesData={program.nodes}
@@ -300,7 +221,6 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
           sourceName={program.sourceName}
         />
 
-        {/* Degree Insights Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="space-y-2">
             <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
@@ -338,126 +258,42 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
             <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
               <GitBranchIcon className="h-4 w-4 text-primary" /> Longest Prerequisite Chain
             </h3>
-            <p className="text-xs font-mono font-semibold text-primary">
-              {longestPath.join(" → ")}
-            </p>
+            <p className="text-xs font-mono font-semibold text-primary">{longestPath.join(" → ")}</p>
             <p className="text-[11px] text-on-surface-variant">
               Longest known prerequisite chain: {longestPathLength} courses
             </p>
           </Card>
         </div>
 
-        {/* Cycle Alert if detected */}
         {hasCycle && (
           <Card className="border-amber-300 bg-amber-50 space-y-1">
             <h3 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
               <AlertTriangleIcon className="h-4 w-4 text-amber-700" /> Prerequisite Cycle Detected
             </h3>
             <p className="text-xs text-amber-800">
-              Source requirements contain a circular prerequisite relationship involving: {cycleNodes?.join(", ")}. Verify sequencing with an SNHU advisor.
+              Source requirements contain a circular prerequisite relationship involving: {cycleNodes?.join(", ")}.
+              Verify sequencing with an SNHU advisor.
             </p>
           </Card>
         )}
       </div>
 
-      {/* Accessible Requirements Section */}
       <section className="space-y-6 pt-6 border-t border-surface-variant">
         <div>
-          <h2 className="text-xl font-bold text-on-surface">
-            Program Requirement Groups & Course Listing
-          </h2>
-          <p className="text-xs text-on-surface-variant">
-            Structured text outline of requirement categories, credit thresholds, and course listings.
-          </p>
+          <h2 className="text-xl font-bold text-on-surface">Program Requirement Groups & Course Listing</h2>
+          <p className="text-xs text-on-surface-variant">Credit totals by degree requirement category.</p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {program.groups.map((group) => (
-            <Card key={group.id} className="space-y-4 border-l-4" style={{ borderLeftColor: group.colorTheme.border }}>
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-variant pb-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={getGroupCategoryVariant(group.category)}>
-                      {group.title}
-                    </Badge>
-                    <span className="text-xs font-semibold text-on-surface-variant">
-                      {group.totalCredits == null ? "Credits not specified" : `${group.totalCredits} Total Credits`}
-                    </span>
-                  </div>
-                  {group.description && (
-                    <p className="mt-1 text-xs text-on-surface-variant">
-                      {group.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {getRequirementInstruction(group) && (
-                <p className="text-xs font-semibold text-on-surface-variant">
-                  {getRequirementInstruction(group)}
-                </p>
-              )}
-
-              {group.sourceText && (
-                <details className="rounded-md bg-surface-container-low p-3 text-xs text-on-surface-variant">
-                  <summary className="cursor-pointer font-semibold text-on-surface">Complete catalog rule text</summary>
-                  <p className="mt-2 whitespace-pre-wrap leading-relaxed">{group.sourceText}</p>
-                </details>
-              )}
-
-              <div className="space-y-2">
-                {group.items.length > 0 ? (
-                  <RequirementTreeItems items={group.items} />
-                ) : (
-                  <p className="text-xs italic text-on-surface-variant py-1">
-                    Course listings mapped in interactive degree graph.
-                  </p>
-                )}
-              </div>
+            <Card key={group.id} className="border-l-4 py-4" style={{ borderLeftColor: group.colorTheme.border }}>
+              <h3 className="text-sm font-bold text-on-surface">{group.title}</h3>
+              <p className="mt-1 text-xs font-semibold text-on-surface-variant">
+                {group.totalCredits == null ? "Credits not specified" : `${group.totalCredits} Total Credits`}
+              </p>
             </Card>
           ))}
         </div>
-
-        {/* Unparsed Requirements Section */}
-        {program.unparsedRequirements && program.unparsedRequirements.length > 0 && (
-          <Card className="border-amber-300 bg-amber-50/50 space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-              <HelpCircleIcon className="h-4 w-4 text-amber-700" /> Additional Special Catalog Notes
-            </h3>
-            <ul className="text-xs text-amber-800 space-y-1 list-disc list-inside">
-              {program.unparsedRequirements.map((note, index) => (
-                <li key={index}>{note}</li>
-              ))}
-            </ul>
-          </Card>
-        )}
-      </section>
-
-      {/* About Section */}
-      <section className="pt-6 border-t border-surface-variant space-y-4">
-        <Card className="space-y-3">
-          <h2 className="text-base font-bold text-on-surface">
-            About the {program.title} Degree Program
-          </h2>
-          <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
-            {program.description}
-          </p>
-
-          {program.careerPaths && (
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
-                Potential Career Pathways
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {program.careerPaths.map((career) => (
-                  <Badge key={career} variant="neutral">
-                    {career}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </Card>
       </section>
     </div>
   );

@@ -8,6 +8,11 @@ export interface ExportGraphOptions {
   edges: PrerequisiteEdgeData[];
 }
 
+/**
+ * Generates a simplified SVG card grid for download.
+ * This does not reproduce the live Dagre layout or draw prerequisite edges.
+ * Use renderReactFlowToPng for an accurate graph image.
+ */
 export function generateGraphSvgString(options: ExportGraphOptions): string {
   const { programTitle, catalogYear, sourceName, nodes } = options;
 
@@ -68,33 +73,4 @@ export function downloadGraphSvg(options: ExportGraphOptions): void {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-}
-
-export function triggerPrintDegreeMap(options: ExportGraphOptions): void {
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
-
-  const svgContent = generateGraphSvgString(options);
-
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>${options.programTitle} - Degree Map Print</title>
-        <style>
-          body { margin: 0; padding: 20px; font-family: system-ui, sans-serif; background: white; }
-          @media print {
-            body { padding: 0; }
-          }
-        </style>
-      </head>
-      <body>
-        ${svgContent}
-        <script>
-          window.onload = function() { window.print(); };
-        </script>
-      </body>
-    </html>
-  `);
-  printWindow.document.close();
 }

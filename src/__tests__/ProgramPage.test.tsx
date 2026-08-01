@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { ProgramDetailContent, RequirementTreeItems } from "@/app/programs/[slug]/page";
+import { ProgramDetailContent } from "@/app/programs/[slug]/page";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -10,52 +10,53 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("Computer Science Program Page", () => {
-  it("renders the graph, requirements, and transfer content without summary cards", async () => {
+  it("renders catalog, transfer, credit summaries, and graph without duplicate about content", async () => {
     const element = await ProgramDetailContent({ slug: "computer-science-bs" });
     render(element);
 
     expect(await screen.findByRole("heading", { name: "Computer Science", level: 1 })).toBeInTheDocument();
     expect(screen.getByText("Bachelor of Science in Computer Science")).toBeInTheDocument();
+
+    const catalogLink = screen.getByRole("link", { name: /Official SNHU Catalog/i });
+    expect(catalogLink).toHaveAttribute(
+      "href",
+      "https://www.snhu.edu/admission/academic-catalogs#/programs/V1S14E8tg/none",
+    );
+    expect(catalogLink.getAttribute("href")).not.toMatch(/\/api\//);
+    expect(catalogLink.getAttribute("href")).not.toMatch(/kuali\.co/);
+
+    expect(screen.getByRole("heading", { name: "Transfer Integration", level: 2 })).toBeInTheDocument();
+    expect(
+      screen.getByText(/\d+ of \d+ required courses have known transfer equivalencies \(\d+%\)\./i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Explore All Options on snhu-transfers/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Transfer Evaluation Disclaimer/i)).not.toBeInTheDocument();
+
+    const transferLink = screen.getByRole("link", { name: "View transfer equivalencies for CS 210" });
+    expect(transferLink).toHaveAttribute("href", "https://snhu-transfers.vercel.app/courses/CS210");
+
     expect(screen.getByText("Program Requirement Groups & Course Listing")).toBeInTheDocument();
-    expect(screen.getByText("About the Computer Science Degree Program")).toBeInTheDocument();
-    expect(screen.queryByText("Total Credits")).not.toBeInTheDocument();
-    expect(screen.queryByText("Known Courses")).not.toBeInTheDocument();
-    expect(screen.queryByText("Prerequisite Depth")).not.toBeInTheDocument();
-    expect(screen.queryByText("Est. Duration")).not.toBeInTheDocument();
-    expect(screen.queryByText(/This degree map represents an unofficial possible course sequence/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Credit totals by degree requirement category.")).toBeInTheDocument();
+    expect(screen.getAllByText("42 Total Credits").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Complete all of the following")).not.toBeInTheDocument();
+    expect(screen.queryByText("Complete catalog rule text")).not.toBeInTheDocument();
+    expect(screen.queryByText(/About the Computer Science Degree Program/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Potential Career Pathways")).not.toBeInTheDocument();
+
+    // Nested course listings removed from credit-summary cards
+    expect(screen.queryByText("MAT 241: Modern Statistics")).not.toBeInTheDocument();
+    expect(screen.queryByText("Course listings mapped in interactive degree graph.")).not.toBeInTheDocument();
+
+    expect(screen.getByLabelText(/Interactive prerequisite graph for Computer Science/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Search courses in degree map/i)).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/Search map/i)).not.toBeInTheDocument();
+    expect(screen.getByTitle("Download SVG Graph")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Preview and print degree map image/i)).toBeInTheDocument();
   }, 15000);
 
   it("triggers 404 for invalid program slug", async () => {
     await expect(async () => {
       await ProgramDetailContent({ slug: "non-existent-program" });
     }).rejects.toThrow("NEXT_NOT_FOUND");
-  });
-
-  it("renders nested requirement groups recursively", () => {
-    render(
-      <RequirementTreeItems
-        items={[
-          {
-            id: "cmat",
-            type: "group",
-            title: "Cornerstone Math (CMAT)",
-            credits: null,
-            subItems: [
-              {
-                id: "choice",
-                type: "group",
-                title: "Choose 1 of the following",
-                credits: null,
-                subItems: [{ id: "mat241", type: "choice", title: "MAT 241: Modern Statistics", credits: 3 }],
-              },
-            ],
-          },
-        ]}
-      />
-    );
-
-    expect(screen.getByText("Cornerstone Math (CMAT)")).toBeInTheDocument();
-    expect(screen.getByText("Choose 1 of the following")).toBeInTheDocument();
-    expect(screen.getByText("MAT 241: Modern Statistics")).toBeInTheDocument();
   });
 });

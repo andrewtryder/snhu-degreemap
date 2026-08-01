@@ -16,6 +16,7 @@ import { fixturePrograms, getProgramBySlug as getFixtureBySlug } from "@/data/fi
 import { CATEGORY_PALETTES } from "@/lib/graphLayout";
 import { normalizeDegreeLevel } from "@/lib/kualiParser";
 import { getCourseCodeKey, getCourseNodeId, normalizeCourseCode } from "@/lib/courseCode";
+import { resolvePublicCatalogUrl } from "@/lib/snhuCatalog";
 
 let poolInstance: Pool | null = null;
 
@@ -76,7 +77,7 @@ export interface ProgramSummary {
   totalCredits: number | null;
   requiredCourseCount: number;
   description: string;
-  sourceCatalogUrl: string;
+  sourceCatalogUrl: string | null;
 }
 
 export const getPrograms = cache(
@@ -93,25 +94,25 @@ export const getPrograms = cache(
           try {
             const res = await client.query<{
               id: string;
+              sourcePid: string | null;
               slug: string;
               title: string;
               credential: string;
               catalogYear: string;
               totalCredits: number | null;
               description: string;
-              sourceCatalogUrl: string;
               requiredCourseCount: string;
             }>(
               `
               SELECT
                 p.id,
+                p.source_pid as "sourcePid",
                 p.slug,
                 p.title,
                 p.credential,
                 c.year_label as "catalogYear",
                 p.total_credits as "totalCredits",
                 p.description_summary as description,
-                p.source_url as "sourceCatalogUrl",
                 (
                   (SELECT COUNT(DISTINCT prc2.course_code)
                    FROM program_requirement_courses prc2
@@ -144,7 +145,8 @@ export const getPrograms = cache(
               requiredCourseCount: parseInt(row.requiredCourseCount, 10) || 0,
               electiveCredits: null,
               estimatedDuration: "Not available",
-              sourceCatalogUrl: row.sourceCatalogUrl || "https://snhu.kuali.co",
+              sourcePid: row.sourcePid?.trim() || undefined,
+              sourceCatalogUrl: resolvePublicCatalogUrl(row.sourcePid),
               sourceName: "SNHU Academic Catalog",
               description: row.description || "",
               groups: [],
@@ -181,14 +183,13 @@ export const getProgramBySlug = cache(
           try {
             const progRes = await client.query<{
               id: string;
-              sourcePid: string;
+              sourcePid: string | null;
               slug: string;
               title: string;
               credential: string;
               catalogYear: string;
               totalCredits: number | null;
               description: string;
-              sourceCatalogUrl: string;
             }>(
               `
               SELECT
@@ -199,8 +200,7 @@ export const getProgramBySlug = cache(
                 p.credential,
                 c.year_label as "catalogYear",
                 p.total_credits as "totalCredits",
-                p.description_summary as description,
-                p.source_url as "sourceCatalogUrl"
+                p.description_summary as description
               FROM programs p
               JOIN catalogs c ON p.catalog_id = c.id
               WHERE p.slug = $1
@@ -498,25 +498,26 @@ export const getProgramBySlug = cache(
             const nodes = Array.from(nodesMap.values());
             const degreeLevel = normalizeDegreeLevel(p.credential);
 
-            return {
-              slug: p.slug,
-              title: p.title,
-              degreeLevel,
-              credential: p.credential,
-              catalogYear: p.catalogYear || "2025-2026",
-              totalCredits: p.totalCredits ?? null,
-              requiredCourseCount,
-              electiveCredits: null,
-              estimatedDuration: "Not available",
-              sourceCatalogUrl: p.sourceCatalogUrl || "https://snhu.kuali.co",
-              sourceName: "SNHU Academic Catalog",
-              description: p.description || "",
-              careerPaths: undefined,
-              groups: topLevelGroups,
-              nodes,
-              edges,
-              unparsedRequirements: unparsedNotes.length > 0 ? unparsedNotes : undefined,
-            };
+          return {
+            slug: p.slug,
+            title: p.title,
+            degreeLevel,
+            credential: p.credential,
+            catalogYear: p.catalogYear || "2025-2026",
+            totalCredits: p.totalCredits ?? null,
+            requiredCourseCount,
+            electiveCredits: null,
+            estimatedDuration: "Not available",
+            sourcePid: p.sourcePid?.trim() || undefined,
+            sourceCatalogUrl: resolvePublicCatalogUrl(p.sourcePid),
+            sourceName: "SNHU Academic Catalog",
+            description: p.description || "",
+            careerPaths: undefined,
+            groups: topLevelGroups,
+            nodes,
+            edges,
+            unparsedRequirements: unparsedNotes.length > 0 ? unparsedNotes : undefined,
+          };
           } finally {
             client.release();
           }
