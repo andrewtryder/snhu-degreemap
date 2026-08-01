@@ -11,7 +11,8 @@ export const fixturePrograms: DegreeProgram[] = [
     requiredCourseCount: 26,
     electiveCredits: 42,
     estimatedDuration: "4 Years (8 Semesters)",
-    sourceCatalogUrl: "https://catalog.snhu.edu/preview_program.php?catoid=4&poid=1024",
+    sourcePid: "V1S14E8tg",
+    sourceCatalogUrl: "https://www.snhu.edu/admission/academic-catalogs#/programs/V1S14E8tg/none",
     sourceName: "SNHU Academic Catalog (Prototype Fixture)",
     description:
       "The Bachelor of Science in Computer Science provides students with deep fundamentals in software development, algorithm design, data structures, computer architecture, and software security. (Prototype fixture data for demonstration).",
@@ -471,7 +472,7 @@ export const fixturePrograms: DegreeProgram[] = [
     requiredCourseCount: 24,
     electiveCredits: 39,
     estimatedDuration: "4 Years (8 Semesters)",
-    sourceCatalogUrl: "https://catalog.snhu.edu/preview_program.php?catoid=4&poid=1025",
+    sourceCatalogUrl: null,
     sourceName: "SNHU Academic Catalog (Prototype Fixture)",
     description:
       "Prepares students to protect networks, systems, and digital assets against cyber threats through threat hunting, digital forensics, incident response, and security architecture.",
@@ -538,7 +539,7 @@ export const fixturePrograms: DegreeProgram[] = [
     requiredCourseCount: 22,
     electiveCredits: 45,
     estimatedDuration: "4 Years (8 Semesters)",
-    sourceCatalogUrl: "https://catalog.snhu.edu/preview_program.php?catoid=4&poid=1026",
+    sourceCatalogUrl: null,
     sourceName: "SNHU Academic Catalog (Prototype Fixture)",
     description:
       "Focuses on enterprise network infrastructure, cloud systems administration, database management, IT service management, and technology deployment.",
@@ -588,7 +589,7 @@ export const fixturePrograms: DegreeProgram[] = [
     requiredCourseCount: 25,
     electiveCredits: 36,
     estimatedDuration: "4 Years (8 Semesters)",
-    sourceCatalogUrl: "https://catalog.snhu.edu/preview_program.php?catoid=4&poid=1027",
+    sourceCatalogUrl: null,
     sourceName: "SNHU Academic Catalog (Prototype Fixture)",
     description:
       "Develops strategic managerial leadership, financial accounting, marketing dynamics, business law, and operational decision-making skills.",
@@ -638,7 +639,7 @@ export const fixturePrograms: DegreeProgram[] = [
     requiredCourseCount: 20,
     electiveCredits: 51,
     estimatedDuration: "4 Years (8 Semesters)",
-    sourceCatalogUrl: "https://catalog.snhu.edu/preview_program.php?catoid=4&poid=1028",
+    sourceCatalogUrl: null,
     sourceName: "SNHU Academic Catalog (Prototype Fixture)",
     description:
       "Explores human behavior, cognitive processes, social psychology, statistical research methods, and psychological assessment.",
@@ -688,7 +689,7 @@ export const fixturePrograms: DegreeProgram[] = [
     requiredCourseCount: 10,
     electiveCredits: 30,
     estimatedDuration: "1-2 Years (Post-RN)",
-    sourceCatalogUrl: "https://catalog.snhu.edu/preview_program.php?catoid=4&poid=1029",
+    sourceCatalogUrl: null,
     sourceName: "SNHU Academic Catalog (Prototype Fixture)",
     description:
       "CCNE-accredited completion pathway for registered nurses seeking advanced competencies in evidence-based practice, healthcare quality, and nursing leadership.",

@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
   ReactFlow,
+  ReactFlowProvider,
   Controls,
   Background,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   type Node,
   type Edge,
 } from "@xyflow/react";
@@ -14,12 +16,13 @@ import "@xyflow/react/dist/style.css";
 import { CourseNodeData, PrerequisiteEdgeData, GroupCategory } from "@/types/program";
 import { layoutDegreeGraph } from "@/lib/graphLayout";
 import { buildDegreeGraph } from "@/lib/graphTransformer";
-import { downloadGraphSvg, triggerPrintDegreeMap } from "@/lib/exportGraph";
+import { downloadGraphSvg } from "@/lib/exportGraph";
+import { renderReactFlowToPng } from "@/lib/renderReactFlowToPng";
 import { CustomCourseNode } from "./CustomCourseNode";
 import { RequirementRuleNode } from "./RequirementRuleNode";
 import { InformationalNode } from "./InformationalNode";
 import { CourseDetailDrawer } from "./CourseDetailDrawer";
-import { SearchInput } from "@/components/ui/SearchInput";
+import { GraphImagePreviewDialog } from "./GraphImagePreviewDialog";
 import { Button } from "@/components/ui/Button";
 import {
   FilterIcon,
@@ -48,7 +51,7 @@ export interface DegreeMapGraphProps {
   className?: string;
 }
 
-export function DegreeMapGraph({
+function DegreeMapGraphInner({
   nodesData,
   edgesData,
   programTitle,
@@ -58,19 +61,24 @@ export function DegreeMapGraph({
   className = "h-[650px]",
 }: DegreeMapGraphProps) {
   const [selectedGroup, setSelectedGroup] = useState<GroupCategory | "all">("all");
-  const [mapSearch, setMapSearch] = useState<string>("");
   const [selectedCourse, setSelectedCourse] = useState<CourseNodeData | null>(null);
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
   const [highlightMode, setHighlightMode] = useState<"none" | "starting" | "critical">("none");
+  const [isExporting, setIsExporting] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
+  const [previewWidth, setPreviewWidth] = useState<number | undefined>();
+  const [previewHeight, setPreviewHeight] = useState<number | undefined>();
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
-  // Run graph transformer analysis
-  // The primary canvas is a course-dependency map. Requirement hierarchy is
-  // available in the accessible requirement list below, not as floating DAG nodes.
+  const flowContainerRef = useRef<HTMLElement | null>(null);
+  const { getNodes } = useReactFlow();
+
   const fullGraph = useMemo(() => buildDegreeGraph(nodesData, edgesData), [nodesData, edgesData]);
 
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
     () => layoutDegreeGraph(fullGraph.nodes, fullGraph.edges),
-    [fullGraph]
+    [fullGraph],
   );
 
   const [nodes, , onNodesChange] = useNodesState<Node>(initialNodes);
@@ -79,21 +87,20 @@ export function DegreeMapGraph({
   const startingSet = useMemo(() => new Set(fullGraph.insights.startingCourses), [fullGraph]);
   const criticalSet = useMemo(() => new Set(fullGraph.insights.criticalCourses), [fullGraph]);
 
-  // Apply highlight & filter states to graph nodes
   const processedNodes = useMemo(() => {
     return nodes.map((node) => {
       const course = node.data as unknown as CourseNodeData;
-      if ((course as unknown as { nodeType?: string }).nodeType && (course as unknown as { nodeType?: string }).nodeType !== "course" && (course as unknown as { nodeType?: string }).nodeType !== "elective_placeholder") {
+      if (
+        (course as unknown as { nodeType?: string }).nodeType &&
+        (course as unknown as { nodeType?: string }).nodeType !== "course" &&
+        (course as unknown as { nodeType?: string }).nodeType !== "elective_placeholder"
+      ) {
         return node;
       }
-      const matchesSearch =
-        mapSearch.trim() === "" ||
-        course.code.toLowerCase().includes(mapSearch.toLowerCase()) ||
-        course.title.toLowerCase().includes(mapSearch.toLowerCase());
 
       const matchesGroup = selectedGroup === "all" || course.groupCategory === selectedGroup;
 
-      let isHighlighted = Boolean(mapSearch.trim() && matchesSearch);
+      let isHighlighted = false;
       if (highlightMode === "starting" && startingSet.has(course.code)) {
         isHighlighted = true;
       } else if (highlightMode === "critical" && criticalSet.has(course.code)) {
@@ -102,7 +109,6 @@ export function DegreeMapGraph({
 
       const isFilteredOut =
         !matchesGroup ||
-        (Boolean(mapSearch.trim()) && !matchesSearch) ||
         (highlightMode === "starting" && !startingSet.has(course.code)) ||
         (highlightMode === "critical" && !criticalSet.has(course.code));
 
@@ -115,7 +121,7 @@ export function DegreeMapGraph({
         },
       };
     });
-  }, [nodes, mapSearch, selectedGroup, highlightMode, startingSet, criticalSet]);
+  }, [nodes, selectedGroup, highlightMode, startingSet, criticalSet]);
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
@@ -124,7 +130,7 @@ export function DegreeMapGraph({
         setSelectedCourse(course);
       }
     },
-    [nodesData]
+    [nodesData],
   );
 
   const handleExportSvg = () => {
@@ -137,14 +143,44 @@ export function DegreeMapGraph({
     });
   };
 
-  const handlePrint = () => {
-    triggerPrintDegreeMap({
-      programTitle,
-      catalogYear,
-      sourceName,
-      nodes: fullGraph.nodes,
-      edges: fullGraph.edges,
-    });
+  const handlePrintPreview = async () => {
+    if (isExporting) return;
+
+    setIsExporting(true);
+    setPreviewOpen(true);
+    setPreviewDataUrl(null);
+    setPreviewError(null);
+    setPreviewWidth(undefined);
+    setPreviewHeight(undefined);
+
+    try {
+      const flowElement = flowContainerRef.current;
+      if (!flowElement) {
+        throw new Error("Graph container is not ready for export.");
+      }
+
+      const result = await renderReactFlowToPng({
+        nodes: getNodes(),
+        flowElement,
+        backgroundColor: "#ffffff",
+      });
+
+      setPreviewDataUrl(result.dataUrl);
+      setPreviewWidth(result.width);
+      setPreviewHeight(result.height);
+    } catch (err) {
+      console.error("Graph image export failed", err instanceof Error ? err.message : "unknown error");
+      setPreviewError("Unable to render the degree map image. Try again or use SVG download.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const closePreview = () => {
+    setPreviewOpen(false);
+    setPreviewDataUrl(null);
+    setPreviewError(null);
+    setIsExporting(false);
   };
 
   const containerClass = isFullScreen
@@ -155,19 +191,8 @@ export function DegreeMapGraph({
 
   return (
     <div className={containerClass}>
-      {/* Map Control Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface-variant bg-surface-container-low p-3 shadow-xs">
-        <div className="flex flex-1 flex-wrap items-center gap-2 min-w-[280px]">
-          <div className="w-full sm:w-64">
-            <SearchInput
-              value={mapSearch}
-              onChange={setMapSearch}
-              placeholder="Search map (e.g. CS 300)..."
-              ariaLabel="Search courses in degree map"
-            />
-          </div>
-
-          {/* Group Category Filter Pills */}
+        <div className="flex flex-1 flex-wrap items-center gap-2 min-w-[200px]">
           <div className="flex items-center gap-1.5 overflow-x-auto py-1">
             <span className="text-xs font-semibold text-on-surface-variant flex items-center gap-1">
               <FilterIcon className="h-3.5 w-3.5" /> Group:
@@ -229,7 +254,6 @@ export function DegreeMapGraph({
             </button>
           </div>
 
-          {/* Quick Highlight Filter Modes */}
           <div className="flex items-center gap-1 border-l border-outline-variant pl-2">
             <button
               type="button"
@@ -258,7 +282,6 @@ export function DegreeMapGraph({
           </div>
         </div>
 
-        {/* Toolbar Actions */}
         <div className="flex items-center gap-2">
           {onToggleListView && !isFullScreen && (
             <Button variant="outline" size="sm" onClick={onToggleListView}>
@@ -270,7 +293,14 @@ export function DegreeMapGraph({
             <DownloadIcon className="h-4 w-4 mr-1" /> SVG
           </Button>
 
-          <Button variant="outline" size="sm" onClick={handlePrint} title="Print Printable Degree Map">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrintPreview}
+            disabled={isExporting}
+            title="Preview and print degree map image"
+            aria-label="Preview and print degree map image"
+          >
             <PrinterIcon className="h-4 w-4" />
           </Button>
 
@@ -285,8 +315,8 @@ export function DegreeMapGraph({
         </div>
       </div>
 
-      {/* Main React Flow Graph Region */}
       <section
+        ref={flowContainerRef}
         role="region"
         aria-label={`Interactive prerequisite graph for ${programTitle}`}
         className={`relative overflow-hidden rounded-xl border border-surface-variant bg-surface-container-lowest shadow-sm ${graphHeightClass}`}
@@ -308,8 +338,10 @@ export function DegreeMapGraph({
           <Controls className="!border-surface-variant !bg-surface-container-lowest !shadow-md" />
         </ReactFlow>
 
-        {/* Legend Overlay */}
-        <div className="pointer-events-none absolute bottom-4 left-4 z-10 flex flex-col gap-1.5 rounded-lg border border-surface-variant bg-surface-container-lowest/90 p-3 shadow-md backdrop-blur-xs sm:flex-row sm:items-center sm:gap-4 text-xs">
+        <div
+          data-export-exclude="true"
+          className="pointer-events-none absolute bottom-4 left-4 z-10 flex flex-col gap-1.5 rounded-lg border border-surface-variant bg-surface-container-lowest/90 p-3 shadow-md backdrop-blur-xs sm:flex-row sm:items-center sm:gap-4 text-xs"
+        >
           <div className="flex items-center gap-3 font-medium">
             <span className="flex items-center gap-1">
               <span className="h-3 w-3 rounded-xs border border-[#003087] bg-[#dbe1ff]" /> GenEd
@@ -336,12 +368,27 @@ export function DegreeMapGraph({
         </div>
       </section>
 
-      {/* Course Detail Modal Drawer */}
-      <CourseDetailDrawer
-        course={selectedCourse}
-        onClose={() => setSelectedCourse(null)}
-        allCourses={nodesData}
+      <CourseDetailDrawer course={selectedCourse} onClose={() => setSelectedCourse(null)} allCourses={nodesData} />
+
+      <GraphImagePreviewDialog
+        isOpen={previewOpen}
+        onClose={closePreview}
+        programTitle={programTitle}
+        catalogYear={catalogYear}
+        dataUrl={previewDataUrl}
+        width={previewWidth}
+        height={previewHeight}
+        isLoading={isExporting}
+        error={previewError}
       />
     </div>
+  );
+}
+
+export function DegreeMapGraph(props: DegreeMapGraphProps) {
+  return (
+    <ReactFlowProvider>
+      <DegreeMapGraphInner {...props} />
+    </ReactFlowProvider>
   );
 }

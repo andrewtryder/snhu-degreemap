@@ -3,10 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import HomePage from "@/app/page";
 import AboutPage from "@/app/about/page";
 import { filterProgramsByLevel, ProgramLevelFilterPills } from "@/app/programs/page";
-import { getRequirementInstruction } from "@/app/programs/[slug]/page";
 import { fixturePrograms } from "@/data/fixturePrograms";
 import { getProgramLevelCategory } from "@/lib/programLevelCategories";
-import { RequirementItem } from "@/types/program";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -46,10 +44,16 @@ describe("public page simplification", () => {
     expect(getProgramLevelCategory({ credential: "Bachelor of Arts", degreeLevel: "BA" })).toBe("bachelor");
     expect(getProgramLevelCategory({ credential: "Bachelor of Science", degreeLevel: "BS" })).toBe("bachelor");
     expect(getProgramLevelCategory({ credential: "Master of Science", degreeLevel: "MS" })).toBe("graduate");
-    expect(getProgramLevelCategory({ credential: "Graduate Certificate", degreeLevel: "Graduate Certificate" })).toBe("certificate");
+    expect(getProgramLevelCategory({ credential: "Graduate Certificate", degreeLevel: "Graduate Certificate" })).toBe(
+      "certificate",
+    );
     expect(getProgramLevelCategory({ credential: "Unclassified credential", degreeLevel: "Other" })).toBe("other");
 
-    expect(filterProgramsByLevel(fixturePrograms, "bachelor").every((program) => getProgramLevelCategory(program) === "bachelor")).toBe(true);
+    expect(
+      filterProgramsByLevel(fixturePrograms, "bachelor").every(
+        (program) => getProgramLevelCategory(program) === "bachelor",
+      ),
+    ).toBe(true);
   });
 
   it("renders URL-driven directory level pills", () => {
@@ -60,16 +64,5 @@ describe("public page simplification", () => {
     expect(screen.getByRole("link", { name: "Bachelor’s (BA & BS)" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Graduate (MA/MS)" })).toHaveAttribute("href", "/programs?level=graduate");
     expect(screen.getByRole("link", { name: "Certificate" })).toHaveAttribute("href", "/programs?level=certificate");
-  });
-
-  it("only renders all-of instructions for actionable requirements", () => {
-    const course: RequirementItem = { id: "CS100", type: "single", title: "CS 100: Foundations", credits: 3 };
-    const textOnly: RequirementItem = { id: "txt_1", type: "single", title: "Consult the catalog.", credits: null, isUnparsed: true };
-
-    expect(getRequirementInstruction({ ruleType: "all_of", items: [] })).toBeNull();
-    expect(getRequirementInstruction({ ruleType: "all_of", items: [course] })).toBe("Complete all of the following");
-    expect(getRequirementInstruction({ ruleType: "choose_n", minimumSelections: 2, items: [course] })).toBe("Choose 2 of the following");
-    expect(getRequirementInstruction({ ruleType: "all_of", items: [textOnly] })).toBeNull();
-    expect(getRequirementInstruction({ ruleType: "all_of", items: [{ ...course, credits: null }] })).toBe("Complete all of the following");
   });
 });

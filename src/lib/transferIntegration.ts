@@ -54,30 +54,63 @@ const defaultTransferSnapshot: Record<string, TransferCourseSnapshot> = {
   },
 };
 
+export function normalizeTransferCourseCode(courseCode: string): string {
+  return courseCode.trim().toUpperCase().replace(/\s+/g, " ");
+}
+
+export function courseCodeToTransferPathSegment(courseCode: string): string {
+  return encodeURIComponent(normalizeTransferCourseCode(courseCode).replace(/\s+/g, ""));
+}
+
+function joinBaseAndPath(baseUrl: string, path: string): string {
+  const base = baseUrl.replace(/\/$/, "");
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${normalizedPath}`;
+}
+
 export function getTransferEquivalencyMap(): Record<string, TransferCourseSnapshot> {
   return defaultTransferSnapshot;
 }
 
 export function getTransferSnapshotForCourse(courseCode: string): TransferCourseSnapshot | null {
-  const normalized = courseCode.trim().toUpperCase();
+  const normalized = normalizeTransferCourseCode(courseCode);
   return defaultTransferSnapshot[normalized] || null;
 }
 
 export function getCoursesUrlForCourse(courseCode: string): string | null {
   const baseUrl = process.env.NEXT_PUBLIC_COURSES_URL || "https://snhu-courses.vercel.app";
-  if (!baseUrl) return null;
+  if (!baseUrl.trim()) return null;
 
-  const codeSlug = courseCode.trim().replace(/\s+/g, "");
-  return `${baseUrl.replace(/\/$/, "")}/courses/${codeSlug}`;
+  const codeSlug = courseCodeToTransferPathSegment(courseCode);
+  if (!codeSlug) return null;
+  return joinBaseAndPath(baseUrl, `/courses/${codeSlug}`);
 }
 
+/**
+ * Build a course-detail URL on snhu-transfers.
+ * Verified production route: /courses/[courseNumber] (e.g. /courses/CS110).
+ */
 export function getTransferUrlForCourse(courseCode: string): string | null {
   const baseUrl = process.env.NEXT_PUBLIC_TRANSFERS_URL || "https://snhu-transfers.vercel.app";
-  if (!baseUrl) return null;
+  if (!baseUrl.trim()) return null;
 
-  const snapshot = getTransferSnapshotForCourse(courseCode);
-  const path = snapshot?.canonicalUrl || `/courses/${courseCode.trim().replace(/\s+/g, "")}`;
-  return `${baseUrl.replace(/\/$/, "")}${path}`;
+  const normalized = normalizeTransferCourseCode(courseCode);
+  if (!normalized) return null;
+
+  const snapshot = getTransferSnapshotForCourse(normalized);
+  if (snapshot?.canonicalUrl) {
+    const path = snapshot.canonicalUrl.startsWith("/")
+      ? snapshot.canonicalUrl
+      : `/${snapshot.canonicalUrl}`;
+    // Re-encode the final segment for safety while preserving /courses/... shape
+    const segments = path.split("/").filter(Boolean);
+    const encoded = "/" + segments.map((s) => encodeURIComponent(decodeURIComponent(s))).join("/");
+    return joinBaseAndPath(baseUrl, encoded);
+  }
+
+  const codeSlug = courseCodeToTransferPathSegment(normalized);
+  if (!codeSlug) return null;
+  return joinBaseAndPath(baseUrl, `/courses/${codeSlug}`);
 }
 
 export function calculateProgramTransferInsights(program: DegreeProgram): ProgramTransferInsights {
@@ -86,7 +119,7 @@ export function calculateProgramTransferInsights(program: DegreeProgram): Progra
   const totalCourses = knownCourses.length;
 
   const transferableCodes = knownCourses
-    .map((n) => n.code.trim().toUpperCase())
+    .map((n) => normalizeTransferCourseCode(n.code))
     .filter((code) => Boolean(map[code]));
 
   const transferableCoursesCount = transferableCodes.length;

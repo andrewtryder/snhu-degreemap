@@ -98,7 +98,10 @@ export interface DegreeProgram {
   requiredCourseCount: number;
   electiveCredits: number | null;
   estimatedDuration: string; // e.g. "4 Years (8 Semesters)"
-  sourceCatalogUrl: string;
+  /** Kuali/source program PID used to build the public catalog URL. */
+  sourcePid?: string;
+  /** Public SNHU catalog program page URL, or null when sourcePid is unavailable. */
+  sourceCatalogUrl: string | null;
   sourceName: string;
   description: string;
   careerPaths?: string[];
