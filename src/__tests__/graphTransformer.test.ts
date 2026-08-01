@@ -63,6 +63,7 @@ describe("graphTransformer Analysis Engine", () => {
   it("builds a complete degree graph model with insights", () => {
     const graph = buildDegreeGraph(sampleNodes, sampleEdges);
     expect(graph.nodes.length).toBe(4);
+    expect(graph.nodes.every((node) => node.nodeType === "course")).toBe(true);
     expect(graph.insights.startingCourses).toContain("CS 110");
     expect(graph.insights.longestPathLength).toBe(4);
   });

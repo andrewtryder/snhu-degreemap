@@ -11,7 +11,7 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { CourseNodeData, PrerequisiteEdgeData, GroupCategory, RequirementGroup } from "@/types/program";
+import { CourseNodeData, PrerequisiteEdgeData, GroupCategory } from "@/types/program";
 import { layoutDegreeGraph } from "@/lib/graphLayout";
 import { buildDegreeGraph } from "@/lib/graphTransformer";
 import { downloadGraphSvg, triggerPrintDegreeMap } from "@/lib/exportGraph";
@@ -41,7 +41,6 @@ const nodeTypes = {
 export interface DegreeMapGraphProps {
   nodesData: CourseNodeData[];
   edgesData: PrerequisiteEdgeData[];
-  requirementGroups?: RequirementGroup[];
   programTitle: string;
   catalogYear?: string;
   sourceName?: string;
@@ -52,7 +51,6 @@ export interface DegreeMapGraphProps {
 export function DegreeMapGraph({
   nodesData,
   edgesData,
-  requirementGroups = [],
   programTitle,
   catalogYear = "2025-2026",
   sourceName = "SNHU Academic Catalog",
@@ -66,7 +64,9 @@ export function DegreeMapGraph({
   const [highlightMode, setHighlightMode] = useState<"none" | "starting" | "critical">("none");
 
   // Run graph transformer analysis
-  const fullGraph = useMemo(() => buildDegreeGraph(nodesData, edgesData, requirementGroups), [nodesData, edgesData, requirementGroups]);
+  // The primary canvas is a course-dependency map. Requirement hierarchy is
+  // available in the accessible requirement list below, not as floating DAG nodes.
+  const fullGraph = useMemo(() => buildDegreeGraph(nodesData, edgesData), [nodesData, edgesData]);
 
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
     () => layoutDegreeGraph(fullGraph.nodes, fullGraph.edges),
