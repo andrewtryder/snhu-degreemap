@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { ProgramDetailContent } from "@/app/programs/[slug]/page";
+import { ProgramDetailContent, RequirementTreeItems } from "@/app/programs/[slug]/page";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -29,5 +29,33 @@ describe("Computer Science Program Page", () => {
     await expect(async () => {
       await ProgramDetailContent({ slug: "non-existent-program" });
     }).rejects.toThrow("NEXT_NOT_FOUND");
+  });
+
+  it("renders nested requirement groups recursively", () => {
+    render(
+      <RequirementTreeItems
+        items={[
+          {
+            id: "cmat",
+            type: "group",
+            title: "Cornerstone Math (CMAT)",
+            credits: null,
+            subItems: [
+              {
+                id: "choice",
+                type: "group",
+                title: "Choose 1 of the following",
+                credits: null,
+                subItems: [{ id: "mat241", type: "choice", title: "MAT 241: Modern Statistics", credits: 3 }],
+              },
+            ],
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText("Cornerstone Math (CMAT)")).toBeInTheDocument();
+    expect(screen.getByText("Choose 1 of the following")).toBeInTheDocument();
+    expect(screen.getByText("MAT 241: Modern Statistics")).toBeInTheDocument();
   });
 });

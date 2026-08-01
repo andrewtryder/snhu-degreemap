@@ -60,6 +60,34 @@ describe("kualiParser utility", () => {
     expect(firstGroup.category).toBe("gened");
   });
 
+  it("preserves labeled Kuali wrappers and flattens rule-result course lists", () => {
+    const program = parseProgramDetail(sampleCsProgram);
+    const genEd = program.requirementGroups.find((group) => group.title === "General Education Courses");
+    const major = program.requirementGroups.find((group) => group.title === "Major Courses");
+
+    expect(genEd?.rawText).toBeUndefined();
+    const cmat = genEd?.children.find((group) => group.title === "Cornerstone Math (CMAT)");
+    const esmf = genEd?.children.find((group) => group.title.includes("(ESMF)"));
+
+    expect(cmat?.children).toHaveLength(1);
+    expect(cmat?.children[0]).toMatchObject({
+      ruleType: "choose_n",
+      minimumSelections: 1,
+      courseRequirements: [{ courseCode: "MAT 241" }, { courseCode: "MAT 243" }],
+    });
+    expect(cmat?.children[0].ruleMetadata?.explicitCourseCodes).toEqual(["MAT 241", "MAT 243"]);
+
+    expect(esmf?.children).toHaveLength(1);
+    expect(esmf?.children[0].courseRequirements.map((course) => course.courseCode)).toEqual(["MAT 142", "MAT 225"]);
+
+    expect(major?.children.some((group) => group.title === "Complete:")).toBe(false);
+    expect(major?.children[0]).toMatchObject({
+      ruleType: "choose_n",
+      minimumSelections: 1,
+      courseRequirements: [{ courseCode: "CS 110" }, { courseCode: "IT 140" }],
+    });
+  });
+
   it("parses requirement tree rules (all_of, choose_n, electives)", () => {
     const sampleHtml = `
       <div>

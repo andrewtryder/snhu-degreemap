@@ -73,7 +73,11 @@ async function persistGroupToStaging(
       minimum_selections = EXCLUDED.minimum_selections,
       maximum_selections = EXCLUDED.maximum_selections,
       minimum_credits = EXCLUDED.minimum_credits,
-      sort_order = EXCLUDED.sort_order;
+      sort_order = EXCLUDED.sort_order,
+      parent_group_id = EXCLUDED.parent_group_id,
+      warning_count = EXCLUDED.warning_count,
+      raw_excerpt = EXCLUDED.raw_excerpt,
+      rule_metadata = EXCLUDED.rule_metadata;
   `,
     [
       groupId,

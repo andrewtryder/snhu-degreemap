@@ -181,12 +181,14 @@ export function parseRequirementTree(
         children: [],
         courseRequirements: [],
         textRequirements: [],
-        rawText: headerSpanText.replace(/\s+/g, " ").trim(),
-        ruleMetadata: extractRuleMetadata(headerSpanText, []),
+        // A section header is a label, not the catalog rule. Its children retain
+        // their own direct source text below.
+        rawText: undefined,
+        ruleMetadata: undefined,
         warnings: [],
       };
 
-      parseRuleChildren($, element, rootGroup, sectionPath);
+      parseRequirementContainer($, element, rootGroup, sectionPath, true);
       groups.push(rootGroup);
     });
   } catch (err: unknown) {
@@ -218,25 +220,6 @@ function inferMinimumCredits(text: string): number | undefined {
   return match ? parseInt(match[1], 10) : undefined;
 }
 
-function directChildLis($: cheerio.CheerioAPI, owner: Element): Element[] {
-  const ownerIsListItem = $(owner).is("li");
-  return $(owner)
-    .find("li")
-    .filter((_, candidate) =>
-      ownerIsListItem
-        ? $(candidate).parents("li").first().get(0) === owner
-        : $(candidate).parents("li").length === 0
-    )
-    .toArray();
-}
-
-function directCourseAnchors($: cheerio.CheerioAPI, owner: Element): Element[] {
-  return $(owner)
-    .find("a[href*='/courses/view/']")
-    .filter((_, candidate) => $(candidate).closest("li").get(0) === owner)
-    .toArray();
-}
-
 function getDirectRuleText($: cheerio.CheerioAPI, element: Element): string {
   const clone = $(element).clone();
   clone.find("ul, ol").remove();
@@ -247,7 +230,7 @@ function extractRuleMetadata(
   sourceText: string,
   courses: CourseRequirementDomain[]
 ): RequirementRuleMetadata {
-  const metadata: RequirementRuleMetadata = { sourceText };
+  const metadata: RequirementRuleMetadata = sourceText ? { sourceText } : {};
   const creditMatch = sourceText.match(/(\d+)\s*credit\(s\)/i);
   const rangeMatch = sourceText.match(/\b(\d{3})\s*(?:-|–|to)\s*(\d{3})\b/);
   const subjectMatch = sourceText.match(
@@ -296,68 +279,170 @@ function parseCourseAnchor(
   };
 }
 
-function parseRuleChildren(
+function directElements($: cheerio.CheerioAPI, owner: Element): Element[] {
+  return $(owner).children().toArray().filter((child): child is Element => child.type === "tag");
+}
+
+function isRuleView($: cheerio.CheerioAPI, element: Element): boolean {
+  return /^ruleView-/.test($(element).attr("data-test") || "");
+}
+
+function isGenericWrapper(text: string): boolean {
+  return /^(?:complete\s+)?all\s+of\s+the\s+following:?$/i.test(text.replace(/\s+/g, " ").trim());
+}
+
+function normalizeRuleTitle(text: string, ruleType: RuleType): string {
+  const normalized = text.replace(/\s+/g, " ").trim().replace(/:$/, "");
+  if (/^complete$/i.test(normalized)) return "Complete all of the following";
+  if (ruleType === "choose_n") {
+    const count = inferMinimumSelections(normalized);
+    return count ? `Choose ${count} of the following` : normalized || "Choose from the following";
+  }
+  if (ruleType === "choose_credits") {
+    const credits = inferMinimumCredits(normalized);
+    return credits ? `Complete ${credits} credits from the following` : normalized || "Complete credits from the following";
+  }
+  return normalized || "Complete all of the following";
+}
+
+function collectCourses(
+  $: cheerio.CheerioAPI,
+  owner: Element,
+  sourcePath: string
+): CourseRequirementDomain[] {
+  const seen = new Set<string>();
+  const courses: CourseRequirementDomain[] = [];
+  $(owner).find("a[href*='/courses/view/']").each((index, anchor) => {
+    const course = parseCourseAnchor($, anchor, `${sourcePath}.course[${index}]`);
+    if (course && !seen.has(course.courseCode)) {
+      seen.add(course.courseCode);
+      courses.push(course);
+    }
+  });
+  return courses;
+}
+
+function addCoursesToParent(parent: RequirementGroupDomain, courses: CourseRequirementDomain[]): void {
+  const seen = new Set(parent.courseRequirements.map((course) => course.courseCode));
+  for (const course of courses) {
+    if (!seen.has(course.courseCode)) {
+      seen.add(course.courseCode);
+      parent.courseRequirements.push(course);
+    }
+  }
+}
+
+function createSemanticRule(
   $: cheerio.CheerioAPI,
   owner: Element,
   parent: RequirementGroupDomain,
-  parentPath: string
+  sourcePath: string,
+  index: number
+): RequirementGroupDomain {
+  const result = $(owner)
+    .find("[data-test$='-result']")
+    .first()
+    .get(0);
+  const ruleText = getDirectRuleText($, owner) || (result ? getDirectRuleText($, result) : "");
+  const courses = collectCourses($, owner, sourcePath);
+  const ruleType = inferRuleType(ruleText);
+  const group: RequirementGroupDomain = {
+    stableSourcePath: `${sourcePath}.rule[${index}]`,
+    title: normalizeRuleTitle(ruleText, ruleType),
+    category: parent.category,
+    ruleType,
+    minimumSelections: inferMinimumSelections(ruleText),
+    minimumCredits: inferMinimumCredits(ruleText),
+    children: [],
+    courseRequirements: courses,
+    textRequirements: [],
+    rawText: ruleText || undefined,
+    warnings: [],
+  };
+  // Extract after the course list is complete so explicit alternatives are
+  // available to persistence and any optional requirement presentation.
+  group.ruleMetadata = extractRuleMetadata(ruleText, courses);
+  return group;
+}
+
+function getWrapperHeading($: cheerio.CheerioAPI, element: Element): string | null {
+  if (!$(element).is("div")) return null;
+  const span = $(element).children("span").first();
+  if (span.length === 0) return null;
+  const heading = span.text().replace(/\s+/g, " ").trim();
+  if (!heading || /^\d+(?:\s*credit\(s\))?$/i.test(heading)) return null;
+  return heading;
+}
+
+/**
+ * Kuali interleaves invalid-but-browser-tolerated div wrappers and list items.
+ * This walks direct DOM children, recognizes a ruleView result as one semantic
+ * rule, and intentionally flattens presentation-only "Complete all" wrappers.
+ */
+function parseRequirementContainer(
+  $: cheerio.CheerioAPI,
+  owner: Element,
+  parent: RequirementGroupDomain,
+  parentPath: string,
+  skipHeaders = false
 ): void {
-  const seenCourses = new Set(parent.courseRequirements.map((course) => course.courseCode));
-  const children = directChildLis($, owner);
+  let position = 0;
+  for (const child of directElements($, owner)) {
+    if (skipHeaders && $(child).is("header")) continue;
+    const childPath = `${parentPath}.node[${position++}]`;
+    const heading = getWrapperHeading($, child);
 
-  children.forEach((li, index) => {
-    const childLis = directChildLis($, li);
-    const anchors = directCourseAnchors($, li);
-    const dataTest = $(li).attr("data-test") || "";
-    const isRuleGroup = childLis.length > 0 || /^ruleView-/.test(dataTest);
-    const childPath = `${parentPath}.rule[${index}]`;
-
-    if (isRuleGroup) {
-      const ruleText = getDirectRuleText($, li);
-      const group: RequirementGroupDomain = {
-        stableSourcePath: childPath,
-        title: ruleText || `Requirement ${index + 1}`,
+    if (heading) {
+      const subgroup: RequirementGroupDomain = {
+        stableSourcePath: `${childPath}.heading`,
+        title: heading,
         category: parent.category,
-        ruleType: inferRuleType(ruleText),
-        minimumSelections: inferMinimumSelections(ruleText),
-        minimumCredits: inferMinimumCredits(ruleText),
+        ruleType: "all_of",
         children: [],
         courseRequirements: [],
         textRequirements: [],
-        rawText: ruleText,
         warnings: [],
       };
-
-      const groupSeen = new Set<string>();
-      anchors.forEach((anchor, anchorIndex) => {
-        const course = parseCourseAnchor($, anchor, `${childPath}.course[${anchorIndex}]`);
-        if (course && !groupSeen.has(course.courseCode)) {
-          groupSeen.add(course.courseCode);
-          group.courseRequirements.push(course);
-        }
-      });
-      group.ruleMetadata = extractRuleMetadata(ruleText, group.courseRequirements);
-      if (anchors.length === 0 && ruleText && !/^(complete\s+)?(?:all|\d+\s+of)/i.test(ruleText)) {
-        group.textRequirements.push(ruleText);
+      parseRequirementContainer($, child, subgroup, subgroup.stableSourcePath);
+      if (subgroup.children.length || subgroup.courseRequirements.length || subgroup.textRequirements.length) {
+        parent.children.push(subgroup);
       }
-      parseRuleChildren($, li, group, childPath);
-      parent.children.push(group);
-      return;
+      continue;
     }
 
-    anchors.forEach((anchor, anchorIndex) => {
-      const course = parseCourseAnchor($, anchor, `${parentPath}.course[${index}-${anchorIndex}]`);
-      if (course && !seenCourses.has(course.courseCode)) {
-        seenCourses.add(course.courseCode);
-        parent.courseRequirements.push(course);
-      }
-    });
-
-    const text = getDirectRuleText($, li);
-    if (anchors.length === 0 && text && !parent.textRequirements.includes(text)) {
-      parent.textRequirements.push(text);
+    if (isRuleView($, child)) {
+      parent.children.push(createSemanticRule($, child, parent, parentPath, position));
+      continue;
     }
-  });
+
+    if ($(child).is("li")) {
+      const directText = getDirectRuleText($, child);
+      const nestedRuleViews = $(child).find("[data-test^='ruleView-']").length;
+      const directCourses = collectCourses($, child, childPath);
+
+      if (
+        directCourses.length > 0 &&
+        (inferRuleType(directText) === "choose_n" ||
+          inferRuleType(directText) === "choose_credits" ||
+          (nestedRuleViews === 0 && isGenericWrapper(directText)))
+      ) {
+        parent.children.push(createSemanticRule($, child, parent, parentPath, position));
+      } else if (isGenericWrapper(directText) || nestedRuleViews > 0) {
+        // The outer list item expresses presentation structure only. Its nested
+        // ruleView containers own the actual instruction and courses.
+        parseRequirementContainer($, child, parent, childPath);
+      } else if (directCourses.length > 0) {
+        addCoursesToParent(parent, directCourses);
+      } else if (directText) {
+        parent.textRequirements.push(directText);
+      }
+      continue;
+    }
+
+    if ($(child).is("ul, ol, div")) {
+      parseRequirementContainer($, child, parent, childPath);
+    }
+  }
 }
 
 export function parseProgramDetail(

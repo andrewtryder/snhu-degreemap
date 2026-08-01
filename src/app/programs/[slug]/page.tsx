@@ -50,6 +50,40 @@ export function getRequirementInstruction(group: Pick<RequirementGroup, "ruleTyp
   }
 }
 
+export function RequirementTreeItems({ items, depth = 0 }: { items: RequirementItem[]; depth?: number }) {
+  if (items.length === 0) return null;
+
+  return (
+    <ul className={`space-y-2 ${depth > 0 ? "ml-3 border-l border-surface-variant pl-3" : ""}`}>
+      {items.map((item) => {
+        const isGroup = item.type === "group";
+        return (
+          <li key={item.id} className="rounded-md border border-surface-variant bg-surface-container-low p-3 text-xs">
+            <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+              <div>
+                <span className="font-bold text-on-surface">{item.title}</span>
+                {item.description && (
+                  <p className="mt-0.5 text-[11px] text-on-surface-variant">{item.description}</p>
+                )}
+                {isGroup && item.sourceText && (
+                  <details className="mt-2 text-[11px] text-on-surface-variant">
+                    <summary className="cursor-pointer font-semibold">Complete catalog rule text</summary>
+                    <p className="mt-1 whitespace-pre-wrap leading-relaxed">{item.sourceText}</p>
+                  </details>
+                )}
+              </div>
+              <span className="shrink-0 font-mono font-semibold text-primary">
+                {item.credits == null ? "N/A" : `${item.credits} Credits`}
+              </span>
+            </div>
+            {isGroup && <RequirementTreeItems items={item.subItems || []} depth={depth + 1} />}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export async function generateStaticParams() {
   return [];
 }
@@ -261,7 +295,6 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
         <DegreeMapGraph
           nodesData={program.nodes}
           edgesData={program.edges}
-          requirementGroups={program.groups}
           programTitle={program.title}
           catalogYear={program.catalogYear}
           sourceName={program.sourceName}
@@ -374,30 +407,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
 
               <div className="space-y-2">
                 {group.items.length > 0 ? (
-                  group.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between rounded-md border border-surface-variant bg-surface-container-low p-3 text-xs gap-2"
-                    >
-                      <div>
-                        <span className="font-bold text-on-surface">{item.title}</span>
-                        {item.description && (
-                          <p className="text-[11px] text-on-surface-variant mt-0.5">
-                            {item.description}
-                          </p>
-                        )}
-                        {item.type === "group" && item.sourceText && (
-                          <details className="mt-2 text-[11px] text-on-surface-variant">
-                            <summary className="cursor-pointer font-semibold">Complete catalog rule text</summary>
-                            <p className="mt-1 whitespace-pre-wrap leading-relaxed">{item.sourceText}</p>
-                          </details>
-                        )}
-                      </div>
-                      <span className="font-mono font-semibold text-primary shrink-0">
-                        {item.credits == null ? "N/A" : `${item.credits} Credits`}
-                      </span>
-                    </div>
-                  ))
+                  <RequirementTreeItems items={group.items} />
                 ) : (
                   <p className="text-xs italic text-on-surface-variant py-1">
                     Course listings mapped in interactive degree graph.
