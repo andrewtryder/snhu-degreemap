@@ -67,6 +67,7 @@ export interface RequirementGroup {
   ruleType?: string;
   minimumSelections?: number | null;
   maximumSelections?: number | null;
+  minimumCredits?: number | null;
   description?: string;
   items: RequirementItem[];
 }

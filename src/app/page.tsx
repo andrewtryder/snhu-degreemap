@@ -3,22 +3,16 @@ import Link from "next/link";
 import { AppHeader } from "@/components/AppHeader";
 import { AppFooter } from "@/components/AppFooter";
 import { Card } from "@/components/ui/Card";
-import { MetricCard } from "@/components/ui/MetricCard";
 import { Badge } from "@/components/ui/Badge";
-import { getPrograms } from "@/lib/serverData";
+import { getCatalogLastUpdated, getPrograms } from "@/lib/serverData";
 import {
-  GraduationCapIcon,
-  BookOpenIcon,
-  GitForkIcon,
   ArrowRightIcon,
-  CheckCircle2Icon,
-  AlertTriangleIcon,
 } from "lucide-react";
 
 export const revalidate = false;
 
 export default async function HomePage() {
-  const programs = await getPrograms();
+  const [programs, lastUpdated] = await Promise.all([getPrograms(), getCatalogLastUpdated()]);
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <AppHeader currentPage="home" initialPrograms={programs} />
@@ -28,10 +22,6 @@ export default async function HomePage() {
           {/* Hero Introductory Card */}
           <Card className="relative overflow-hidden border-primary/20 bg-linear-to-br from-surface-container-lowest via-surface-container-low to-surface-container-lowest p-6 sm:p-8 shadow-md">
             <div className="max-w-3xl space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-fixed/20 px-3 py-1 text-xs font-semibold text-primary">
-                <GitForkIcon className="h-3.5 w-3.5" /> Unofficial SNHU Degree & Prerequisite Visualizer
-              </div>
-
               <h1 className="font-[family-name:var(--font-headline)] text-3xl sm:text-4xl font-extrabold tracking-tight text-primary">
                 SNHU Degree Map
               </h1>
@@ -39,59 +29,8 @@ export default async function HomePage() {
               <p className="text-base sm:text-lg text-on-surface-variant leading-relaxed">
                 Explore interactive prerequisite graphs, degree requirement structures, and course sequencing for Southern New Hampshire University programs.
               </p>
-
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <Link
-                  href="/programs/computer-science-bs"
-                  className="inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-container"
-                >
-                  View Computer Science (BS) Map <ArrowRightIcon className="ml-2 h-4 w-4" />
-                </Link>
-                <Link
-                  href="/programs"
-                  className="inline-flex items-center justify-center rounded-lg border border-outline-variant bg-surface px-4 py-2.5 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container"
-                >
-                  Explore All Programs
-                </Link>
-              </div>
-            </div>
-
-            {/* Prototype Banner */}
-            <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-900 flex items-start gap-2.5">
-              <AlertTriangleIcon className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
-              <div>
-                <strong>Prototype Notice:</strong> SNHU Degree Map is an unofficial educational tool. Always verify degree requirements, transfer credit policies, and prerequisites with your SNHU academic advisor.
-              </div>
             </div>
           </Card>
-
-          {/* Discovery Metrics Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricCard
-              label="Available Programs"
-              value={programs.length}
-              subtext="BS, BA, & RN-to-BSN pathways"
-              icon={<GraduationCapIcon className="h-5 w-5 text-primary" />}
-            />
-            <MetricCard
-              label="Catalog Year"
-              value="2025–2026"
-              subtext="Current active fixture catalog"
-              icon={<BookOpenIcon className="h-5 w-5 text-primary" />}
-            />
-            <MetricCard
-              label="Interactive Graph"
-              value="React Flow + Dagre"
-              subtext="Prerequisite & corequisite nodes"
-              icon={<GitForkIcon className="h-5 w-5 text-primary" />}
-            />
-            <MetricCard
-              label="Accessibility"
-              value="Dual View Mode"
-              subtext="Graph map & list fallback"
-              icon={<CheckCircle2Icon className="h-5 w-5 text-primary" />}
-            />
-          </div>
 
           {/* Featured Programs Directory Section */}
           <section className="space-y-4">
@@ -152,7 +91,7 @@ export default async function HomePage() {
         </div>
       </main>
 
-      <AppFooter />
+      <AppFooter lastUpdated={lastUpdated} />
     </div>
   );
 }

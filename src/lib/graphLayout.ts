@@ -98,8 +98,9 @@ export function buildGraphNodesAndEdges(
         type: MarkerType.ArrowClosed,
         color: isCoreq ? "#2c6cf0" : isRec ? "#d97706" : "#747683",
       },
-      label: edge.label,
-      labelStyle: { fill: "#444652", fontSize: 10, fontWeight: 600 },
+      // Relationship context remains in the stored edge data and drawer, but
+      // labels make dense graphs difficult to read when rendered on paths.
+      label: undefined,
     };
   });
 

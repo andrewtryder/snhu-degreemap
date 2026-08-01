@@ -5,21 +5,17 @@ import { Metadata } from "next";
 import { AppHeader } from "@/components/AppHeader";
 import { AppFooter } from "@/components/AppFooter";
 import { Card } from "@/components/ui/Card";
-import { MetricCard } from "@/components/ui/MetricCard";
 import { Badge, getGroupCategoryVariant } from "@/components/ui/Badge";
 import { DegreeMapGraph } from "@/components/graph/DegreeMapGraph";
-import { getProgramBySlug } from "@/lib/serverData";
+import { getCatalogLastUpdated, getProgramBySlug } from "@/lib/serverData";
 import { buildDegreeGraph } from "@/lib/graphTransformer";
 import { calculateProgramTransferInsights } from "@/lib/transferIntegration";
+import { RequirementGroup, RequirementItem } from "@/types/program";
 import {
-  GraduationCapIcon,
-  BookOpenIcon,
   CalendarIcon,
   ExternalLinkIcon,
   AlertTriangleIcon,
-  ClockIcon,
   HelpCircleIcon,
-  InfoIcon,
   SparklesIcon,
   ZapIcon,
   GitBranchIcon,
@@ -27,6 +23,32 @@ import {
 
 export const dynamicParams = true;
 export const revalidate = false;
+
+export function hasActionableRequirements(items: RequirementItem[]): boolean {
+  return items.some((item) => {
+    if (item.type === "group") return hasActionableRequirements(item.subItems || []);
+    if (item.isUnparsed || item.id.startsWith("txt_") || /^n\/?a$/i.test(item.title.trim())) return false;
+    return item.type === "single" || item.type === "choice" || item.type === "elective";
+  });
+}
+
+export function getRequirementInstruction(group: Pick<RequirementGroup, "ruleType" | "minimumSelections" | "minimumCredits" | "items">): string | null {
+  const actionable = hasActionableRequirements(group.items);
+
+  switch (group.ruleType) {
+    case "all_of":
+      return actionable ? "Complete all of the following" : null;
+    case "choose_n":
+      return actionable && group.minimumSelections ? `Choose ${group.minimumSelections} of the following` : null;
+    case "choose_credits":
+      return actionable && group.minimumCredits ? `Complete at least ${group.minimumCredits} credits` : null;
+    case "free_elective":
+    case "elective":
+      return actionable ? "Free electives" : null;
+    default:
+      return null;
+  }
+}
 
 export async function generateStaticParams() {
   return [];
@@ -183,41 +205,6 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
           {program.description}
         </p>
 
-        {/* Disclaimer Banner */}
-        <div className="rounded-lg border border-outline-variant bg-surface-container-low p-3 text-xs text-on-surface-variant flex items-start gap-2">
-          <InfoIcon className="h-4 w-4 shrink-0 text-primary mt-0.5" />
-          <div>
-            <strong>Source:</strong> {program.sourceName}. This degree map represents an unofficial possible course sequence. Always verify official graduation requirements with your SNHU academic advisor.
-          </div>
-        </div>
-      </div>
-
-      {/* Metric Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          label="Total Credits"
-          value={program.totalCredits == null ? "Not available" : `${program.totalCredits} cr`}
-          subtext="Degree completion target"
-          icon={<GraduationCapIcon className="h-5 w-5 text-primary" />}
-        />
-        <MetricCard
-          label="Known Courses"
-          value={program.requiredCourseCount}
-          subtext="Catalog course requirements"
-          icon={<BookOpenIcon className="h-5 w-5 text-primary" />}
-        />
-        <MetricCard
-          label="Prerequisite Depth"
-          value={`${longestPathLength} Levels`}
-          subtext="Longest prerequisite chain"
-          icon={<GitBranchIcon className="h-5 w-5 text-primary" />}
-        />
-        <MetricCard
-          label="Est. Duration"
-          value={program.estimatedDuration}
-          subtext="Informational catalog estimate"
-          icon={<ClockIcon className="h-5 w-5 text-primary" />}
-        />
       </div>
 
       {/* Program Transfer Opportunities Summary Card (snhu-transfers integration) */}
@@ -371,6 +358,12 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
                 </div>
               </div>
 
+              {getRequirementInstruction(group) && (
+                <p className="text-xs font-semibold text-on-surface-variant">
+                  {getRequirementInstruction(group)}
+                </p>
+              )}
+
               <div className="space-y-2">
                 {group.items.length > 0 ? (
                   group.items.map((item) => (
@@ -452,6 +445,7 @@ export default async function ProgramDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const resolvedParams = await params;
+  const lastUpdated = await getCatalogLastUpdated();
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -461,7 +455,7 @@ export default async function ProgramDetailPage({
           <ProgramDetailContent slug={resolvedParams.slug} />
         </Suspense>
       </main>
-      <AppFooter />
+      <AppFooter lastUpdated={lastUpdated} />
     </div>
   );
 }

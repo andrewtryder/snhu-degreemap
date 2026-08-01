@@ -25,4 +25,14 @@ describe("graphLayout utility", () => {
     expect(genEdNode).toBeDefined();
     expect(genEdNode?.data.palette).toEqual(CATEGORY_PALETTES.gened);
   });
+
+  it("preserves relationship edges without rendering source text as an edge label", () => {
+    const edgeWithContext = { ...csProgram.edges[0], label: "Complete: MAT 140" };
+    const { edges } = layoutDegreeGraph(csProgram.nodes, [edgeWithContext]);
+
+    expect(edges).toHaveLength(1);
+    expect(edges[0].source).toBe(edgeWithContext.source);
+    expect(edges[0].target).toBe(edgeWithContext.target);
+    expect(edges[0].label).toBeUndefined();
+  });
 });

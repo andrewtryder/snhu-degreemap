@@ -23,9 +23,9 @@ describe("Trust & Methodology Pages", () => {
     expect(screen.getByText("Computer Science")).toBeInTheDocument();
   });
 
-  it("renders About Page with trademark and unofficial disclaimers", () => {
-    render(<AboutPage />);
+  it("renders About Page with concise unofficial disclaimers", async () => {
+    render(await AboutPage());
     expect(screen.getByRole("heading", { name: /About SNHU Degree Map/i })).toBeInTheDocument();
-    expect(screen.getByText(/Trademark & Unofficial Status Disclaimer/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Important Disclaimer/i })).toBeInTheDocument();
   });
 });

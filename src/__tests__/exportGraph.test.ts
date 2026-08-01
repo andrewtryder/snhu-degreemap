@@ -21,4 +21,16 @@ describe("exportGraph Utility", () => {
     expect(svg).toContain("Unofficial Tool. SNHU Degree Map is not affiliated with");
     expect(svg).not.toContain("SNHU logo");
   });
+
+  it("does not include edge source text in exported graph output", () => {
+    const svg = generateGraphSvgString({
+      programTitle: csProgram.title,
+      catalogYear: csProgram.catalogYear,
+      sourceName: csProgram.sourceName,
+      nodes: csProgram.nodes,
+      edges: [{ ...csProgram.edges[0], label: "Complete: CS 210" }],
+    });
+
+    expect(svg).not.toContain("Complete: CS 210");
+  });
 });

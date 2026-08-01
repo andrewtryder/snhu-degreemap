@@ -245,6 +245,8 @@ export const getProgramBySlug = cache(
                 title: string;
                 category: GroupCategory;
                 rule_type: string;
+                minimum_selections: number | null;
+                maximum_selections: number | null;
                 minimum_credits: number | null;
                 items: RequirementItem[];
               }
@@ -326,6 +328,7 @@ export const getProgramBySlug = cache(
                   type: "single",
                   title: t.text,
                   credits: null,
+                  isUnparsed: true,
                 });
                 unparsedNotes.push(t.text);
               }
@@ -336,6 +339,8 @@ export const getProgramBySlug = cache(
                 title: gRow.title,
                 category: cat,
                 rule_type: gRow.rule_type,
+                minimum_selections: gRow.minimum_selections,
+                maximum_selections: gRow.maximum_selections,
                 minimum_credits: gRow.minimum_credits,
                 items,
               });
@@ -350,6 +355,10 @@ export const getProgramBySlug = cache(
                   title: gData.title,
                   credits: gData.minimum_credits,
                   subItems: gData.items,
+                  ruleType: gData.rule_type,
+                  minimumSelections: gData.minimum_selections,
+                  maximumSelections: gData.maximum_selections,
+                  minimumCredits: gData.minimum_credits,
                 });
               }
             }
@@ -378,6 +387,10 @@ export const getProgramBySlug = cache(
                   title: gData.title,
                   category: gData.category,
                   totalCredits: totalCreds,
+                  ruleType: gData.rule_type,
+                  minimumSelections: gData.minimum_selections,
+                  maximumSelections: gData.maximum_selections,
+                  minimumCredits: gData.minimum_credits,
                   items: gData.items,
                   colorTheme: {
                     bg: palette.bg,
@@ -672,6 +685,41 @@ export const getProgramSyncState = cache(async () => {
   } catch {
     return null;
   }
+});
+
+/** The latest successful catalog refresh, used for public data freshness messaging. */
+export const getCatalogLastUpdated = cache(async (): Promise<Date | null> => {
+  const pool = getDbPool();
+  if (!pool) return null;
+
+  return safeCache(
+    async () => {
+      try {
+        const client = await pool.connect();
+        try {
+          const res = await client.query<{ last_updated: Date | null }>(`
+            SELECT COALESCE(
+              (
+                SELECT completed_at
+                FROM program_sync_state
+                WHERE completed_at IS NOT NULL
+                ORDER BY completed_at DESC
+                LIMIT 1
+              ),
+              (SELECT MAX(synced_at) FROM catalogs)
+            ) AS last_updated;
+          `);
+          return res.rows[0]?.last_updated ?? null;
+        } finally {
+          client.release();
+        }
+      } catch {
+        return null;
+      }
+    },
+    ["catalog-last-updated"],
+    { tags: ["program-data"] }
+  );
 });
 
 function filterFixtures(
