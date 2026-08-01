@@ -9,6 +9,10 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
+vi.mock("@/components/graph/DynamicDegreeMapGraph", () => ({
+  DynamicDegreeMapGraph: () => <div data-testid="dynamic-degree-map">map</div>,
+}));
+
 describe("Computer Science Program Page", () => {
   it("renders catalog, transfer, credit summaries, and graph without duplicate about content", async () => {
     const element = await ProgramDetailContent({ slug: "computer-science-bs" });
@@ -51,11 +55,10 @@ describe("Computer Science Program Page", () => {
     expect(screen.queryByText("MAT 241: Modern Statistics")).not.toBeInTheDocument();
     expect(screen.queryByText("Course listings mapped in interactive degree graph.")).not.toBeInTheDocument();
 
-    expect(screen.getByLabelText(/Interactive prerequisite graph for Computer Science/i)).toBeInTheDocument();
+    // Graph loads through next/dynamic wrapper (client-only); assert mount point, not heavy canvas.
+    expect(screen.getByTestId("dynamic-degree-map")).toBeInTheDocument();
     expect(screen.queryByLabelText(/Search courses in degree map/i)).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/Search map/i)).not.toBeInTheDocument();
-    expect(screen.getByTitle("Download SVG Graph")).toBeInTheDocument();
-    expect(screen.getByLabelText(/Preview and print degree map image/i)).toBeInTheDocument();
   }, 15000);
 
   it("triggers 404 for invalid program slug", async () => {

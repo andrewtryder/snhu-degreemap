@@ -1,50 +1,56 @@
 import { MetadataRoute } from "next";
-import { getPrograms } from "@/lib/serverData";
-import { siteConfig } from "@/lib/site";
+import { getCatalogLastUpdated, getSitemapPrograms } from "@/lib/serverData";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = siteConfig.url.replace(/\/$/, "");
+  const baseUrl = getSiteUrl();
+  const catalogUpdated = await getCatalogLastUpdated();
+  const staticLastModified = catalogUpdated ?? undefined;
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
-      lastModified: new Date(),
+      lastModified: staticLastModified,
       changeFrequency: "weekly",
       priority: 1.0,
     },
     {
       url: `${baseUrl}/programs`,
-      lastModified: new Date(),
+      lastModified: staticLastModified,
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
       url: `${baseUrl}/about`,
-      lastModified: new Date(),
+      lastModified: staticLastModified,
       changeFrequency: "monthly",
       priority: 0.5,
     },
   ];
 
   try {
-    const programs = await getPrograms();
-    const programRoutes: MetadataRoute.Sitemap = programs.flatMap((p) => [
-      {
-        url: `${baseUrl}/programs/${p.slug}`,
-        lastModified: new Date(),
-        changeFrequency: "weekly" as const,
-        priority: 0.8,
-      },
-      {
-        url: `${baseUrl}/programs/${p.slug}/requirements`,
-        lastModified: new Date(),
-        changeFrequency: "weekly" as const,
-        priority: 0.75,
-      },
-    ]);
+    const programs = await getSitemapPrograms();
+    const programRoutes: MetadataRoute.Sitemap = programs.flatMap((program) => {
+      const lastModified = program.updatedAt ?? catalogUpdated ?? undefined;
+      return [
+        {
+          url: `${baseUrl}/programs/${program.slug}`,
+          lastModified,
+          changeFrequency: "weekly" as const,
+          priority: 0.8,
+        },
+        {
+          url: `${baseUrl}/programs/${program.slug}/requirements`,
+          lastModified,
+          changeFrequency: "weekly" as const,
+          priority: 0.75,
+        },
+      ];
+    });
 
     return [...staticRoutes, ...programRoutes];
   } catch {
+    // DB failure: return verified static routes only. Do not invent empty program success.
     return staticRoutes;
   }
 }

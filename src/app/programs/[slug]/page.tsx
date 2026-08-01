@@ -6,10 +6,18 @@ import { AppHeader } from "@/components/AppHeader";
 import { AppFooter } from "@/components/AppFooter";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { DegreeMapGraph } from "@/components/graph/DegreeMapGraph";
-import { getCatalogLastUpdated, getProgramBySlug } from "@/lib/serverData";
+import { DynamicDegreeMapGraph } from "@/components/graph/DynamicDegreeMapGraph";
+import { getCatalogLastUpdated, getProgramBySlug, getRelatedPrograms } from "@/lib/serverData";
 import { buildDegreeGraph } from "@/lib/graphTransformer";
 import { calculateProgramTransferInsights, getTransferUrlForCourse } from "@/lib/transferIntegration";
+import { getSiteUrl } from "@/lib/siteUrl";
+import { isIndexableDeployment } from "@/lib/deploymentEnv";
+import { getProgramLevelCategory } from "@/lib/programLevelCategories";
+import {
+  buildProgramMapDescription,
+  buildProgramMapTitle,
+  categoryLabelForRelated,
+} from "@/lib/programSeo";
 import {
   CalendarIcon,
   ExternalLinkIcon,
@@ -36,14 +44,15 @@ export async function generateMetadata({
 
   if (!program) {
     return {
-      title: "Program Not Found | SNHU Degree Map",
+      title: "Program Not Found",
       description: "The requested degree program map could not be found.",
+      robots: { index: false, follow: false },
     };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "https://snhu-degreemap.vercel.app";
-  const title = `SNHU ${program.title} (${program.degreeLevel}) Degree Map & Requirement Guide`;
-  const description = `Explore unofficial SNHU ${program.title} (${program.credential}) degree requirements, prerequisite graph, starting courses, and credit structure (${program.catalogYear}).`;
+  const baseUrl = getSiteUrl();
+  const title = buildProgramMapTitle(program);
+  const description = buildProgramMapDescription(program);
 
   return {
     title,
@@ -63,10 +72,9 @@ export async function generateMetadata({
       title,
       description,
     },
-    robots: {
-      index: true,
-      follow: true,
-    },
+    robots: isIndexableDeployment()
+      ? { index: true, follow: true }
+      : { index: false, follow: false },
   };
 }
 
@@ -77,13 +85,37 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
     notFound();
   }
 
-  const graphData = buildDegreeGraph(program.nodes, program.edges);
+  const [graphData, relatedPrograms, lastUpdated] = await Promise.all([
+    Promise.resolve(buildDegreeGraph(program.nodes, program.edges)),
+    getRelatedPrograms(slug),
+    getCatalogLastUpdated(),
+  ]);
   const { startingCourses, criticalCourses, longestPath, longestPathLength, hasCycle, cycleNodes } = graphData.insights;
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "https://snhu-degreemap.vercel.app";
+  const baseUrl = getSiteUrl();
   const transferInsights = calculateProgramTransferInsights(program);
+  const programUrl = `${baseUrl}/programs/${program.slug}`;
+  const programId = `${programUrl}#program`;
+  const relatedCategory = categoryLabelForRelated(getProgramLevelCategory(program));
+  const dateModified = lastUpdated ? lastUpdated.toISOString() : undefined;
 
-  // Safe JSON-LD Structured Data
+  const programEntity: Record<string, unknown> = {
+    "@type": "EducationalOccupationalProgram",
+    "@id": programId,
+    url: programUrl,
+    name: program.title,
+    educationalCredentialAwarded: program.credential,
+    description: program.description,
+    provider: {
+      "@type": "EducationalOrganization",
+      name: "Southern New Hampshire University (Referenced Source)",
+      sameAs: "https://www.snhu.edu",
+    },
+  };
+  if (program.sourceCatalogUrl) {
+    programEntity.isBasedOn = program.sourceCatalogUrl;
+  }
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -93,33 +125,38 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
         url: baseUrl,
         name: "SNHU Degree Map",
         description: "Unofficial degree requirement and course prerequisite visualization tool",
+        publisher: {
+          "@type": "Organization",
+          name: "SNHU Degree Map",
+          description: "Unofficial independent project; not affiliated with or endorsed by SNHU.",
+          url: baseUrl,
+        },
       },
       {
         "@type": "WebPage",
-        "@id": `${baseUrl}/programs/${program.slug}#webpage`,
-        url: `${baseUrl}/programs/${program.slug}`,
-        name: `${program.title} Degree Map`,
+        "@id": `${programUrl}#webpage`,
+        url: programUrl,
+        name: buildProgramMapTitle(program),
         description: program.description,
         isPartOf: { "@id": `${baseUrl}/#website` },
+        mainEntity: { "@id": programId },
+        ...(dateModified ? { dateModified } : {}),
+        publisher: {
+          "@type": "Organization",
+          name: "SNHU Degree Map",
+          description: "Unofficial independent project; not affiliated with or endorsed by SNHU.",
+          url: baseUrl,
+        },
       },
       {
         "@type": "BreadcrumbList",
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Home", item: baseUrl },
           { "@type": "ListItem", position: 2, name: "Programs", item: `${baseUrl}/programs` },
-          { "@type": "ListItem", position: 3, name: program.title, item: `${baseUrl}/programs/${program.slug}` },
+          { "@type": "ListItem", position: 3, name: program.title, item: programUrl },
         ],
       },
-      {
-        "@type": "EducationalOccupationalProgram",
-        name: program.title,
-        educationalCredentialAwarded: program.credential,
-        provider: {
-          "@type": "EducationalOrganization",
-          name: "Southern New Hampshire University (Referenced Source)",
-          sameAs: "https://www.snhu.edu",
-        },
-      },
+      programEntity,
     ],
   };
 
@@ -213,7 +250,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
       </Card>
 
       <div className="space-y-4">
-        <DegreeMapGraph
+        <DynamicDegreeMapGraph
           nodesData={program.nodes}
           edgesData={program.edges}
           programTitle={program.title}
@@ -303,6 +340,32 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
           ))}
         </div>
       </section>
+
+      {relatedPrograms.length > 0 && (
+        <section className="space-y-3 pt-2 border-t border-surface-variant" aria-labelledby="related-programs-heading">
+          <div>
+            <h2 id="related-programs-heading" className="text-xl font-bold text-on-surface">
+              Related {relatedCategory} Programs
+            </h2>
+            <p className="text-xs text-on-surface-variant">
+              Other unofficial degree maps with similar credentials, titles, or shared course requirements.
+            </p>
+          </div>
+          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {relatedPrograms.map((related) => (
+              <li key={related.slug}>
+                <Link
+                  href={`/programs/${related.slug}`}
+                  className="block rounded-lg border border-surface-variant bg-surface-container-lowest px-4 py-3 transition-colors hover:border-primary hover:bg-surface-container-low"
+                >
+                  <span className="text-sm font-bold text-primary">{related.title}</span>
+                  <span className="mt-0.5 block text-xs text-on-surface-variant">{related.credential}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

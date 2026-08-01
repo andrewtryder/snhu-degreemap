@@ -7,8 +7,12 @@ import { AppFooter } from "@/components/AppFooter";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getCatalogLastUpdated, getProgramBySlug } from "@/lib/serverData";
-import { siteConfig } from "@/lib/site";
+import { getSiteUrl } from "@/lib/siteUrl";
 import { isIndexableDeployment } from "@/lib/deploymentEnv";
+import {
+  buildProgramRequirementsDescription,
+  buildProgramRequirementsTitle,
+} from "@/lib/programSeo";
 import {
   getRequirementInstruction,
   RequirementTreeItems,
@@ -39,9 +43,9 @@ export async function generateMetadata({
     };
   }
 
-  const baseUrl = siteConfig.url.replace(/\/$/, "");
-  const title = `SNHU ${program.title} (${program.degreeLevel}) Courses & Requirements`;
-  const description = `Browse unofficial SNHU ${program.title} (${program.credential}) requirement groups, course listings, and known prerequisites for catalog year ${program.catalogYear}.`;
+  const baseUrl = getSiteUrl();
+  const title = buildProgramRequirementsTitle(program);
+  const description = buildProgramRequirementsDescription(program);
 
   return {
     title,
@@ -74,18 +78,48 @@ export async function ProgramRequirementsContent({ slug }: { slug: string }) {
     notFound();
   }
 
-  const baseUrl = siteConfig.url.replace(/\/$/, "");
+  const baseUrl = getSiteUrl();
+  const pageUrl = `${baseUrl}/programs/${program.slug}/requirements`;
+  const programUrl = `${baseUrl}/programs/${program.slug}`;
+  const programId = `${programUrl}#program`;
+  const lastUpdated = await getCatalogLastUpdated();
+  const dateModified = lastUpdated ? lastUpdated.toISOString() : undefined;
+
+  const programEntity: Record<string, unknown> = {
+    "@type": "EducationalOccupationalProgram",
+    "@id": programId,
+    url: programUrl,
+    name: program.title,
+    educationalCredentialAwarded: program.credential,
+    description: program.description,
+    provider: {
+      "@type": "EducationalOrganization",
+      name: "Southern New Hampshire University (Referenced Source)",
+      sameAs: "https://www.snhu.edu",
+    },
+  };
+  if (program.sourceCatalogUrl) {
+    programEntity.isBasedOn = program.sourceCatalogUrl;
+  }
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "WebPage",
-        "@id": `${baseUrl}/programs/${program.slug}/requirements#webpage`,
-        url: `${baseUrl}/programs/${program.slug}/requirements`,
-        name: `${program.title} Courses & Requirements`,
+        "@id": `${pageUrl}#webpage`,
+        url: pageUrl,
+        name: buildProgramRequirementsTitle(program),
         description: program.description,
         isPartOf: { "@id": `${baseUrl}/#website` },
+        mainEntity: { "@id": programId },
+        ...(dateModified ? { dateModified } : {}),
+        publisher: {
+          "@type": "Organization",
+          name: "SNHU Degree Map",
+          description: "Unofficial independent project; not affiliated with or endorsed by SNHU.",
+          url: baseUrl,
+        },
       },
       {
         "@type": "BreadcrumbList",
@@ -96,27 +130,17 @@ export async function ProgramRequirementsContent({ slug }: { slug: string }) {
             "@type": "ListItem",
             position: 3,
             name: program.title,
-            item: `${baseUrl}/programs/${program.slug}`,
+            item: programUrl,
           },
           {
             "@type": "ListItem",
             position: 4,
             name: "Courses & Requirements",
-            item: `${baseUrl}/programs/${program.slug}/requirements`,
+            item: pageUrl,
           },
         ],
       },
-      {
-        "@type": "EducationalOccupationalProgram",
-        name: program.title,
-        educationalCredentialAwarded: program.credential,
-        description: program.description,
-        provider: {
-          "@type": "EducationalOrganization",
-          name: "Southern New Hampshire University (Referenced Source)",
-          sameAs: "https://www.snhu.edu",
-        },
-      },
+      programEntity,
     ],
   };
 
@@ -149,7 +173,7 @@ export async function ProgramRequirementsContent({ slug }: { slug: string }) {
             </span>
           </div>
           <h1 className="font-[family-name:var(--font-headline)] text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
-            {program.title} Courses & Requirements
+            {buildProgramRequirementsTitle(program)}
           </h1>
           <p className="text-sm font-semibold text-on-surface">{program.credential}</p>
           <p className="text-xs sm:text-sm leading-relaxed text-on-surface-variant max-w-4xl">{program.description}</p>

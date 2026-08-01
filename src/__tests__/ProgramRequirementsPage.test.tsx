@@ -16,7 +16,7 @@ describe("Program requirements page", () => {
     render(element);
 
     expect(
-      await screen.findByRole("heading", { name: "Computer Science Courses & Requirements", level: 1 }),
+      await screen.findByRole("heading", { name: "Computer Science BS Degree Requirements", level: 1 }),
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Requirement Groups", level: 2 })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Course Inventory", level: 2 })).toBeInTheDocument();
