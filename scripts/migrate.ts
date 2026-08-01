@@ -300,5 +300,8 @@ export async function runMigrations(connectionString?: string) {
 }
 
 if (require.main === module) {
-  runMigrations().catch(() => process.exit(1));
+  runMigrations().catch((error) => {
+    console.error("[Migration Error] Unable to complete database migration:", error);
+    process.exit(1);
+  });
 }
