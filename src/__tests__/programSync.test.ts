@@ -99,8 +99,10 @@ describe("Program Sync Architecture & Promotion Safeguards", () => {
   it("blocks promotion when stored edge count falls more than 20% below live", async () => {
     const mockClient = {
       query: vi.fn().mockImplementation((queryText: string) => {
-        if (queryText.includes("FILTER") && queryText.includes("degree_courses_stage")) return Promise.resolve({ rows: [{ total: "100", resolved: "95" }] });
-        if (queryText.includes("FILTER") && queryText.includes("degree_courses")) return Promise.resolve({ rows: [{ total: "100", resolved: "95" }] });
+        if (queryText.includes("FILTER") && queryText.includes("degree_courses_stage"))
+          return Promise.resolve({ rows: [{ total: "100", resolved: "95" }] });
+        if (queryText.includes("FILTER") && queryText.includes("degree_courses"))
+          return Promise.resolve({ rows: [{ total: "100", resolved: "95" }] });
         if (queryText.includes("FROM degree_course_edges_stage;")) return Promise.resolve({ rows: [{ count: "79" }] });
         if (queryText.includes("FROM degree_course_edges;")) return Promise.resolve({ rows: [{ count: "100" }] });
         if (queryText.includes("FROM programs_stage;")) return Promise.resolve({ rows: [{ count: "10" }] });
@@ -119,8 +121,10 @@ describe("Program Sync Architecture & Promotion Safeguards", () => {
   it("blocks promotion when resolved-course rate falls more than 20% below live", async () => {
     const mockClient = {
       query: vi.fn().mockImplementation((queryText: string) => {
-        if (queryText.includes("FILTER") && queryText.includes("degree_courses_stage")) return Promise.resolve({ rows: [{ total: "100", resolved: "70" }] });
-        if (queryText.includes("FILTER") && queryText.includes("degree_courses")) return Promise.resolve({ rows: [{ total: "100", resolved: "100" }] });
+        if (queryText.includes("FILTER") && queryText.includes("degree_courses_stage"))
+          return Promise.resolve({ rows: [{ total: "100", resolved: "70" }] });
+        if (queryText.includes("FILTER") && queryText.includes("degree_courses"))
+          return Promise.resolve({ rows: [{ total: "100", resolved: "100" }] });
         if (queryText.includes("FROM degree_course_edges_stage;")) return Promise.resolve({ rows: [{ count: "100" }] });
         if (queryText.includes("FROM degree_course_edges;")) return Promise.resolve({ rows: [{ count: "100" }] });
         if (queryText.includes("FROM programs_stage;")) return Promise.resolve({ rows: [{ count: "10" }] });

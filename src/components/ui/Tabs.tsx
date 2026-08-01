@@ -17,13 +17,7 @@ export interface TabsProps {
   className?: string;
 }
 
-export function Tabs({
-  tabs,
-  activeTab,
-  onTabChange,
-  ariaLabel = "Navigation tabs",
-  className = "",
-}: TabsProps) {
+export function Tabs({ tabs, activeTab, onTabChange, ariaLabel = "Navigation tabs", className = "" }: TabsProps) {
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === "ArrowRight") {
       e.preventDefault();
@@ -66,9 +60,7 @@ export function Tabs({
             {tab.badge !== undefined && (
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                  isActive
-                    ? "bg-primary-fixed text-primary"
-                    : "bg-surface-container text-on-surface-variant"
+                  isActive ? "bg-primary-fixed text-primary" : "bg-surface-container text-on-surface-variant"
                 }`}
               >
                 {tab.badge}

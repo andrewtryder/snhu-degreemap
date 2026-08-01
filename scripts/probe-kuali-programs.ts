@@ -34,7 +34,7 @@ function parseArgs(): ProbeOptions {
 
 async function fetchWithRetry(
   url: string,
-  options: { timeoutMs: number; userAgent: string; maxRetries?: number }
+  options: { timeoutMs: number; userAgent: string; maxRetries?: number },
 ): Promise<{ status: number; contentType: string; data: unknown }> {
   const maxRetries = options.maxRetries ?? 3;
 
@@ -164,7 +164,9 @@ async function runProbe() {
     process.exit(1);
   }
 
-  console.log(`\nProbe completed. ${successCount}/${endpoints.length} endpoints successfully saved to ${options.outputDir}`);
+  console.log(
+    `\nProbe completed. ${successCount}/${endpoints.length} endpoints successfully saved to ${options.outputDir}`,
+  );
 }
 
 runProbe().catch((err) => {

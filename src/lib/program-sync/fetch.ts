@@ -85,7 +85,7 @@ export async function fetchKualiCourseList(catalogId = kualiConfig.catalogId): P
 export async function fetchKualiProgramDetail(
   pid: string,
   catalogId = kualiConfig.catalogId,
-  retries = 2
+  retries = 2,
 ): Promise<RawKualiProgramDetail | null> {
   const url = `${kualiConfig.baseUrl}/api/v1/catalog/program/${catalogId}/${pid}`;
 
@@ -110,7 +110,9 @@ export async function fetchKualiProgramDetail(
       }
 
       if (RETRYABLE_STATUSES.has(response.status)) {
-        lastError = new Error(`Kuali program detail endpoint returned HTTP ${response.status} (attempt ${attempt + 1}/${retries + 1})`);
+        lastError = new Error(
+          `Kuali program detail endpoint returned HTTP ${response.status} (attempt ${attempt + 1}/${retries + 1})`,
+        );
         if (attempt < retries) {
           const delay = getBackoffDelay(attempt, response);
           await new Promise((res) => setTimeout(res, delay));
@@ -140,7 +142,7 @@ export async function fetchKualiProgramDetail(
 export async function fetchKualiCourseDetail(
   pid: string,
   catalogId = kualiConfig.catalogId,
-  retries = 2
+  retries = 2,
 ): Promise<RawKualiCourseItem | null> {
   const url = `${kualiConfig.baseUrl}/api/v1/catalog/course/${catalogId}/${pid}`;
 
@@ -165,7 +167,9 @@ export async function fetchKualiCourseDetail(
       }
 
       if (RETRYABLE_STATUSES.has(response.status)) {
-        lastError = new Error(`Kuali course detail endpoint returned HTTP ${response.status} (attempt ${attempt + 1}/${retries + 1})`);
+        lastError = new Error(
+          `Kuali course detail endpoint returned HTTP ${response.status} (attempt ${attempt + 1}/${retries + 1})`,
+        );
         if (attempt < retries) {
           const delay = getBackoffDelay(attempt, response);
           await new Promise((res) => setTimeout(res, delay));

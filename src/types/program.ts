@@ -1,4 +1,15 @@
-export type DegreeLevel = "BS" | "BA" | "AS" | "AA" | "MS" | "MA" | "MBA" | "RN to BSN" | "Graduate Certificate" | "Undergraduate Certificate" | "Other";
+export type DegreeLevel =
+  | "BS"
+  | "BA"
+  | "AS"
+  | "AA"
+  | "MS"
+  | "MA"
+  | "MBA"
+  | "RN to BSN"
+  | "Graduate Certificate"
+  | "Undergraduate Certificate"
+  | "Other";
 
 export type GroupCategory = "gened" | "core" | "major" | "elective" | "other";
 

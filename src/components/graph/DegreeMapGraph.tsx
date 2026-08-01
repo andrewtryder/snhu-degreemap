@@ -1,15 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
-import {
-  ReactFlow,
-  Controls,
-  Background,
-  useNodesState,
-  useEdgesState,
-  type Node,
-  type Edge,
-} from "@xyflow/react";
+import { ReactFlow, Controls, Background, useNodesState, useEdgesState, type Node, type Edge } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { CourseNodeData, PrerequisiteEdgeData, GroupCategory } from "@/types/program";
 import { layoutDegreeGraph } from "@/lib/graphLayout";
@@ -70,7 +62,7 @@ export function DegreeMapGraph({
 
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
     () => layoutDegreeGraph(fullGraph.nodes, fullGraph.edges),
-    [fullGraph]
+    [fullGraph],
   );
 
   const [nodes, , onNodesChange] = useNodesState<Node>(initialNodes);
@@ -83,7 +75,11 @@ export function DegreeMapGraph({
   const processedNodes = useMemo(() => {
     return nodes.map((node) => {
       const course = node.data as unknown as CourseNodeData;
-      if ((course as unknown as { nodeType?: string }).nodeType && (course as unknown as { nodeType?: string }).nodeType !== "course" && (course as unknown as { nodeType?: string }).nodeType !== "elective_placeholder") {
+      if (
+        (course as unknown as { nodeType?: string }).nodeType &&
+        (course as unknown as { nodeType?: string }).nodeType !== "course" &&
+        (course as unknown as { nodeType?: string }).nodeType !== "elective_placeholder"
+      ) {
         return node;
       }
       const matchesSearch =
@@ -124,7 +120,7 @@ export function DegreeMapGraph({
         setSelectedCourse(course);
       }
     },
-    [nodesData]
+    [nodesData],
   );
 
   const handleExportSvg = () => {
@@ -187,9 +183,7 @@ export function DegreeMapGraph({
               type="button"
               onClick={() => setSelectedGroup("gened")}
               className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-                selectedGroup === "gened"
-                  ? "bg-[#003087] text-white"
-                  : "bg-[#dbe1ff] text-[#001d59] hover:opacity-80"
+                selectedGroup === "gened" ? "bg-[#003087] text-white" : "bg-[#dbe1ff] text-[#001d59] hover:opacity-80"
               }`}
             >
               GenEd
@@ -198,9 +192,7 @@ export function DegreeMapGraph({
               type="button"
               onClick={() => setSelectedGroup("core")}
               className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-                selectedGroup === "core"
-                  ? "bg-[#004112] text-white"
-                  : "bg-[#e8f5e9] text-[#002908] hover:opacity-80"
+                selectedGroup === "core" ? "bg-[#004112] text-white" : "bg-[#e8f5e9] text-[#002908] hover:opacity-80"
               }`}
             >
               Core
@@ -209,9 +201,7 @@ export function DegreeMapGraph({
               type="button"
               onClick={() => setSelectedGroup("major")}
               className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-                selectedGroup === "major"
-                  ? "bg-[#7e22ce] text-white"
-                  : "bg-[#f3e8ff] text-[#581c87] hover:opacity-80"
+                selectedGroup === "major" ? "bg-[#7e22ce] text-white" : "bg-[#f3e8ff] text-[#581c87] hover:opacity-80"
               }`}
             >
               Major
@@ -337,11 +327,7 @@ export function DegreeMapGraph({
       </section>
 
       {/* Course Detail Modal Drawer */}
-      <CourseDetailDrawer
-        course={selectedCourse}
-        onClose={() => setSelectedCourse(null)}
-        allCourses={nodesData}
-      />
+      <CourseDetailDrawer course={selectedCourse} onClose={() => setSelectedCourse(null)} allCourses={nodesData} />
     </div>
   );
 }

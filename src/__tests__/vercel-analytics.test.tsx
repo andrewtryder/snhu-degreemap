@@ -21,7 +21,7 @@ describe("Vercel Analytics Integration", () => {
 
     // Check it's not a client component
     expect(layoutContent).not.toContain('"use client"');
-    expect(layoutContent).not.toContain('\'use client\'');
+    expect(layoutContent).not.toContain("'use client'");
 
     // Check exact usage of <Analytics /> inside layout
     const analyticsMatches = layoutContent.match(/<Analytics\s*\/>/g);
@@ -31,7 +31,7 @@ describe("Vercel Analytics Integration", () => {
 
   it("does not contain duplicate Analytics integration in individual pages", () => {
     const pagesDir = path.join(process.cwd(), "src/app");
-    
+
     // Find all page.tsx files recursively
     const findPages = (dir: string, fileList: string[] = []) => {
       const files = fs.readdirSync(dir);

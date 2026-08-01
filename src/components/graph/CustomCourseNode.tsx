@@ -14,14 +14,13 @@ interface CustomCourseNodeData extends CourseNodeData {
 }
 
 export const CustomCourseNode = memo(({ data }: NodeProps & { data: CustomCourseNodeData }) => {
-  const { code, title, credits, palette, isPlaceholder, isExternal, resolutionStatus, isHighlighted, isFilteredOut } = data;
+  const { code, title, credits, palette, isPlaceholder, isExternal, resolutionStatus, isHighlighted, isFilteredOut } =
+    data;
 
   const transferSnapshot = getTransferSnapshotForCourse(code);
 
   const opacityClass = isFilteredOut ? "opacity-30 transition-opacity" : "opacity-100";
-  const highlightClass = isHighlighted
-    ? "ring-4 ring-primary ring-offset-2 scale-105 transition-transform"
-    : "";
+  const highlightClass = isHighlighted ? "ring-4 ring-primary ring-offset-2 scale-105 transition-transform" : "";
 
   return (
     <div
@@ -31,18 +30,11 @@ export const CustomCourseNode = memo(({ data }: NodeProps & { data: CustomCourse
         borderColor: palette.border,
       }}
     >
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="!h-2.5 !w-2.5 !border-2 !border-white !bg-outline"
-      />
+      <Handle type="target" position={Position.Top} className="!h-2.5 !w-2.5 !border-2 !border-white !bg-outline" />
 
       <div className="flex items-center justify-between gap-1">
         <div className="flex items-center gap-1">
-          <span
-            className="font-mono text-xs font-extrabold tracking-wide"
-            style={{ color: palette.codeColor }}
-          >
+          <span className="font-mono text-xs font-extrabold tracking-wide" style={{ color: palette.codeColor }}>
             {code}
           </span>
           {transferSnapshot && (
@@ -63,26 +55,15 @@ export const CustomCourseNode = memo(({ data }: NodeProps & { data: CustomCourse
         </span>
       </div>
 
-      <div
-        className="line-clamp-2 text-xs font-semibold leading-tight text-on-surface"
-        title={title}
-      >
-        {isPlaceholder ? (
-          <span className="italic text-on-surface-variant font-normal">{title}</span>
-        ) : (
-          title
-        )}
+      <div className="line-clamp-2 text-xs font-semibold leading-tight text-on-surface" title={title}>
+        {isPlaceholder ? <span className="italic text-on-surface-variant font-normal">{title}</span> : title}
       </div>
 
       {resolutionStatus && resolutionStatus !== "resolved" && !isExternal && (
         <span className="text-[9px] font-medium text-amber-800">Details unavailable</span>
       )}
 
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!h-2.5 !w-2.5 !border-2 !border-white !bg-outline"
-      />
+      <Handle type="source" position={Position.Bottom} className="!h-2.5 !w-2.5 !border-2 !border-white !bg-outline" />
     </div>
   );
 });

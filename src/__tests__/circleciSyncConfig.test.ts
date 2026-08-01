@@ -11,7 +11,10 @@ function validate(result: unknown): { status: number; output: string } {
   const resultPath = join(directory, "result.json");
   writeFileSync(resultPath, typeof result === "string" ? result : JSON.stringify(result));
   try {
-    const output = execFileSync(process.execPath, [validator, resultPath], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    const output = execFileSync(process.execPath, [validator, resultPath], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     return { status: 0, output };
   } catch (error) {
     const processError = error as { status?: number; stderr?: Buffer };

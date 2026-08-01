@@ -8,7 +8,8 @@ import { BookOpenIcon, DatabaseIcon, CpuIcon, CheckCircle2Icon, InfoIcon } from 
 
 export const metadata = {
   title: "Data Methodology & Catalog Synchronization | SNHU Degree Map",
-  description: "Learn how SNHU Degree Map parses Kuali catalog endpoints, extracts requirement trees, builds prerequisite graphs, and flags source anomalies.",
+  description:
+    "Learn how SNHU Degree Map parses Kuali catalog endpoints, extracts requirement trees, builds prerequisite graphs, and flags source anomalies.",
 };
 
 export default function MethodologyPage() {
@@ -24,7 +25,9 @@ export default function MethodologyPage() {
               Data Processing & Graph Analysis Methodology
             </h1>
             <p className="text-sm text-on-surface-variant max-w-3xl leading-relaxed">
-              This document details how SNHU Degree Map ingests public catalog records, parses complex requirement trees, generates course prerequisite graphs, and maintains high fidelity with official academic source material.
+              This document details how SNHU Degree Map ingests public catalog records, parses complex requirement
+              trees, generates course prerequisite graphs, and maintains high fidelity with official academic source
+              material.
             </p>
           </div>
 
@@ -36,7 +39,9 @@ export default function MethodologyPage() {
               </div>
               <h2 className="text-base font-bold text-on-surface">1. Catalog Ingestion</h2>
               <p className="text-xs text-on-surface-variant leading-relaxed">
-                Scheduled background synchronization jobs run externally via CircleCI, querying public REST endpoints on Kuali catalog host <code className="font-mono text-primary">snhu.kuali.co</code>. Source records are snapshot into PostgreSQL staging tables.
+                Scheduled background synchronization jobs run externally via CircleCI, querying public REST endpoints on
+                Kuali catalog host <code className="font-mono text-primary">snhu.kuali.co</code>. Source records are
+                snapshot into PostgreSQL staging tables.
               </p>
             </Card>
 
@@ -46,7 +51,10 @@ export default function MethodologyPage() {
               </div>
               <h2 className="text-base font-bold text-on-surface">2. Requirement Parsing</h2>
               <p className="text-xs text-on-surface-variant leading-relaxed">
-                Using Cheerio HTML DOM extraction, nested section rules are extracted into structured models (<code className="font-mono text-primary">all_of</code>, <code className="font-mono text-primary">choose_n</code>, minimum credits, concentrations, and free electives). Unparsed sections are explicitly stored and flagged.
+                Using Cheerio HTML DOM extraction, nested section rules are extracted into structured models (
+                <code className="font-mono text-primary">all_of</code>,{" "}
+                <code className="font-mono text-primary">choose_n</code>, minimum credits, concentrations, and free
+                electives). Unparsed sections are explicitly stored and flagged.
               </p>
             </Card>
 
@@ -56,7 +64,10 @@ export default function MethodologyPage() {
               </div>
               <h2 className="text-base font-bold text-on-surface">3. Prerequisite Graph Analysis</h2>
               <p className="text-xs text-on-surface-variant leading-relaxed">
-                Course descriptions are normalized across catalog formatting variants, then prerequisite and corequisite clauses are parsed independently. Explicit course references, including external prerequisites, are shown as informational links; unresolved course records are excluded from starting-course insights. Graphs are rendered using React Flow and Dagre.
+                Course descriptions are normalized across catalog formatting variants, then prerequisite and corequisite
+                clauses are parsed independently. Explicit course references, including external prerequisites, are
+                shown as informational links; unresolved course records are excluded from starting-course insights.
+                Graphs are rendered using React Flow and Dagre.
               </p>
             </Card>
           </div>
@@ -67,9 +78,20 @@ export default function MethodologyPage() {
               <CheckCircle2Icon className="h-5 w-5 text-tertiary" /> Accuracy Rules & Non-Invention Policy
             </h2>
             <ul className="space-y-2 text-xs text-on-surface-variant list-disc list-inside leading-relaxed">
-              <li><strong>Zero Requirement Invention:</strong> Course codes, titles, credit thresholds, and prerequisite relationships are derived exclusively from source catalog records. No artificial dependencies are created.</li>
-              <li><strong>Cycle & Anomaly Handling:</strong> Circular prerequisite references in source records are detected using DFS traversal and flagged with visual warnings without breaking page layout.</li>
-              <li><strong>Staging & Promotion Safeguards:</strong> Database updates occur atomically inside a PostgreSQL transaction only after validating staging schema integrity and verifying that no material shrink occurred.</li>
+              <li>
+                <strong>Zero Requirement Invention:</strong> Course codes, titles, credit thresholds, and prerequisite
+                relationships are derived exclusively from source catalog records. No artificial dependencies are
+                created.
+              </li>
+              <li>
+                <strong>Cycle & Anomaly Handling:</strong> Circular prerequisite references in source records are
+                detected using DFS traversal and flagged with visual warnings without breaking page layout.
+              </li>
+              <li>
+                <strong>Staging & Promotion Safeguards:</strong> Database updates occur atomically inside a PostgreSQL
+                transaction only after validating staging schema integrity and verifying that no material shrink
+                occurred.
+              </li>
             </ul>
           </Card>
 
@@ -79,7 +101,10 @@ export default function MethodologyPage() {
               <InfoIcon className="h-4 w-4 text-primary" /> Verification Reminder
             </h3>
             <p className="leading-relaxed">
-              SNHU Degree Map is an unofficial educational tool designed for program planning and prerequisite visualization. Catalog requirements, term availability, and course offerings are subject to change by Southern New Hampshire University. Always review your official academic evaluation with your SNHU academic advisor.
+              SNHU Degree Map is an unofficial educational tool designed for program planning and prerequisite
+              visualization. Catalog requirements, term availability, and course offerings are subject to change by
+              Southern New Hampshire University. Always review your official academic evaluation with your SNHU academic
+              advisor.
             </p>
             <div className="pt-2">
               <Link href="/data-status" className="font-semibold text-primary hover:underline">

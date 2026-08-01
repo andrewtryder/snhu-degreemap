@@ -38,8 +38,8 @@ export function CourseDetailDrawer({ course, onClose, allCourses = [] }: CourseD
     .map((id) => allCourses.find((c) => c.id === id || c.code === id))
     .filter(Boolean) as CourseNodeData[];
 
-  const unlockedCourses = allCourses.filter((c) =>
-    (c.prerequisites || []).includes(course.id) || (c.prerequisites || []).includes(course.code)
+  const unlockedCourses = allCourses.filter(
+    (c) => (c.prerequisites || []).includes(course.id) || (c.prerequisites || []).includes(course.code),
   );
 
   return (
@@ -54,12 +54,8 @@ export function CourseDetailDrawer({ course, onClose, allCourses = [] }: CourseD
         {/* Badges & Cross-Project Links */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={getGroupCategoryVariant(course.groupCategory)}>
-              {course.groupName}
-            </Badge>
-            {course.isPlaceholder && (
-              <Badge variant="outline">Elective Placeholder</Badge>
-            )}
+            <Badge variant={getGroupCategoryVariant(course.groupCategory)}>{course.groupName}</Badge>
+            {course.isPlaceholder && <Badge variant="outline">Elective Placeholder</Badge>}
             {course.isExternal && <Badge variant="outline">External prerequisite</Badge>}
             {course.resolutionStatus && course.resolutionStatus !== "resolved" && !course.isExternal && (
               <Badge variant="outline">Catalog details unavailable</Badge>
@@ -83,7 +79,8 @@ export function CourseDetailDrawer({ course, onClose, allCourses = [] }: CourseD
 
         {course.resolutionStatus && course.resolutionStatus !== "resolved" && !course.isExternal && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
-            Catalog course details could not be resolved, so prerequisite relationships may be incomplete. Verify this course with SNHU before planning enrollment.
+            Catalog course details could not be resolved, so prerequisite relationships may be incomplete. Verify this
+            course with SNHU before planning enrollment.
           </div>
         )}
 
@@ -114,7 +111,8 @@ export function CourseDetailDrawer({ course, onClose, allCourses = [] }: CourseD
             <div className="pt-1 text-[11px] text-emerald-800 flex items-start gap-1">
               <InfoIcon className="h-3.5 w-3.5 shrink-0 mt-0.5" />
               <span>
-                Transfer data snapshot updated {transferSnapshot.lastUpdated}. All transfer course evaluations require official review and approval by SNHU.
+                Transfer data snapshot updated {transferSnapshot.lastUpdated}. All transfer course evaluations require
+                official review and approval by SNHU.
               </span>
             </div>
           </div>
@@ -164,7 +162,10 @@ export function CourseDetailDrawer({ course, onClose, allCourses = [] }: CourseD
           {coreqCourses.length > 0 ? (
             <ul className="mt-2 space-y-2">
               {coreqCourses.map((req) => (
-                <li key={req.id} className="flex items-center justify-between rounded-lg border border-surface-variant bg-surface-container-low p-2.5 text-xs">
+                <li
+                  key={req.id}
+                  className="flex items-center justify-between rounded-lg border border-surface-variant bg-surface-container-low p-2.5 text-xs"
+                >
                   <span className="font-bold text-primary">{req.code}</span>
                   <span className="text-on-surface">{req.title}</span>
                 </li>
@@ -204,7 +205,8 @@ export function CourseDetailDrawer({ course, onClose, allCourses = [] }: CourseD
         <div className="rounded-lg bg-surface-container p-3 text-xs text-on-surface-variant">
           <p className="font-semibold text-on-surface">Degree Requirement Note:</p>
           <p className="mt-0.5">
-            Course sequencing and prerequisite enforcement may vary based on SNHU course term availability (8-week online terms vs 16-week campus terms). Always verify your plan with an academic advisor.
+            Course sequencing and prerequisite enforcement may vary based on SNHU course term availability (8-week
+            online terms vs 16-week campus terms). Always verify your plan with an academic advisor.
           </p>
         </div>
       </div>

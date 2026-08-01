@@ -17,9 +17,6 @@ export async function GET(request: Request) {
     const results = await searchPrograms(q, { limit, level: levelParam });
     return NextResponse.json({ results, query: q, count: results.length });
   } catch (err: unknown) {
-    return NextResponse.json(
-      { error: `Search error: ${(err as Error).message}` },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: `Search error: ${(err as Error).message}` }, { status: 500 });
   }
 }

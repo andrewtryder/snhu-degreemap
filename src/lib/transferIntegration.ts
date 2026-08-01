@@ -85,9 +85,7 @@ export function calculateProgramTransferInsights(program: DegreeProgram): Progra
   const knownCourses = program.nodes.filter((n) => !n.isPlaceholder);
   const totalCourses = knownCourses.length;
 
-  const transferableCodes = knownCourses
-    .map((n) => n.code.trim().toUpperCase())
-    .filter((code) => Boolean(map[code]));
+  const transferableCodes = knownCourses.map((n) => n.code.trim().toUpperCase()).filter((code) => Boolean(map[code]));
 
   const transferableCoursesCount = transferableCodes.length;
   const nonTransferableCoursesCount = Math.max(0, totalCourses - transferableCoursesCount);

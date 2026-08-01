@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const { setupHoneybadger } = require('@honeybadger-io/nextjs')
+const { setupHoneybadger } = require("@honeybadger-io/nextjs");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  turbopack: {}
-}
+  turbopack: {},
+};
 
-module.exports = setupHoneybadger(nextConfig)
+module.exports = setupHoneybadger(nextConfig);

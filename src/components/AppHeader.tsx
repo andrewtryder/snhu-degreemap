@@ -9,7 +9,13 @@ import { Button } from "./ui/Button";
 
 export interface AppHeaderProps {
   currentPage?: "home" | "programs" | "program-detail" | "about";
-  initialPrograms?: Array<{ slug: string; title: string; credential: string; degreeLevel: string; catalogYear: string }>;
+  initialPrograms?: Array<{
+    slug: string;
+    title: string;
+    credential: string;
+    degreeLevel: string;
+    catalogYear: string;
+  }>;
 }
 
 const searchInputClassName =
@@ -94,12 +100,7 @@ export function AppHeader({ currentPage = "home", initialPrograms = [] }: AppHea
 
           {/* Action Button & Browse Dialog Trigger */}
           <div className="flex items-center gap-2 lg:col-start-3 lg:row-start-1 lg:justify-self-end">
-            <Button
-              variant="primary"
-              size="md"
-              onClick={() => setIsBrowserOpen(true)}
-              className="w-full sm:w-auto"
-            >
+            <Button variant="primary" size="md" onClick={() => setIsBrowserOpen(true)} className="w-full sm:w-auto">
               <GridIcon className="mr-1.5 h-4 w-4 shrink-0" />
               <span>Browse Programs</span>
             </Button>
@@ -108,7 +109,11 @@ export function AppHeader({ currentPage = "home", initialPrograms = [] }: AppHea
       </header>
 
       {/* ProgramBrowserDialog Modal */}
-      <ProgramBrowserDialog isOpen={isBrowserOpen} onClose={() => setIsBrowserOpen(false)} initialPrograms={initialPrograms} />
+      <ProgramBrowserDialog
+        isOpen={isBrowserOpen}
+        onClose={() => setIsBrowserOpen(false)}
+        initialPrograms={initialPrograms}
+      />
     </>
   );
 }

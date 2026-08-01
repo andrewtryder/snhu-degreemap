@@ -76,9 +76,7 @@ export function extractCoursePrerequisitesFromText(prereqText: string): {
 
   // Kuali has returned both plain text and HTML/list markup. Preserve block
   // boundaries so a corequisite label cannot reclassify a previous clause.
-  const text = load(
-    prereqText.replace(/<\/(?:p|div|li|h[1-6]|section)>|<br\s*\/?\s*>/gi, "\n")
-  )("body")
+  const text = load(prereqText.replace(/<\/(?:p|div|li|h[1-6]|section)>|<br\s*\/?\s*>/gi, "\n"))("body")
     .text()
     .replace(/\u00a0/g, " ")
     .replace(/[\t\r ]+/g, " ")
@@ -91,7 +89,7 @@ export function extractCoursePrerequisitesFromText(prereqText: string): {
   const labels = Array.from(text.matchAll(labelPattern));
   const clauses = labels.length
     ? labels.map((label, index) => ({
-        type: /^corequisite/i.test(label[1]) ? "corequisite" as const : "prerequisite" as const,
+        type: /^corequisite/i.test(label[1]) ? ("corequisite" as const) : ("prerequisite" as const),
         text: text.slice(label.index!, labels[index + 1]?.index).trim(),
       }))
     : [{ type: "prerequisite" as const, text }];
@@ -108,22 +106,32 @@ export function extractCoursePrerequisitesFromText(prereqText: string): {
   }
 
   return {
-    prerequisites: relationships.filter((relationship) => relationship.type === "prerequisite").map((relationship) => relationship.code),
-    corequisites: relationships.filter((relationship) => relationship.type === "corequisite").map((relationship) => relationship.code),
+    prerequisites: relationships
+      .filter((relationship) => relationship.type === "prerequisite")
+      .map((relationship) => relationship.code),
+    corequisites: relationships
+      .filter((relationship) => relationship.type === "corequisite")
+      .map((relationship) => relationship.code),
     relationships,
   };
 }
 
-export function generatePrerequisiteEdges(
-  courses: NormalizedCourseDetails[]
-): PrerequisiteEdgeDomain[] {
+export function generatePrerequisiteEdges(courses: NormalizedCourseDetails[]): PrerequisiteEdgeDomain[] {
   const edges = new Map<string, PrerequisiteEdgeDomain>();
 
   for (const course of courses) {
     const target = normalizeCourseCode(course.code);
     const relationships = course.relationships || [
-      ...course.prerequisites.map((code) => ({ code, type: "prerequisite" as const, sourceText: course.prerequisiteText || "" })),
-      ...course.corequisites.map((code) => ({ code, type: "corequisite" as const, sourceText: course.prerequisiteText || "" })),
+      ...course.prerequisites.map((code) => ({
+        code,
+        type: "prerequisite" as const,
+        sourceText: course.prerequisiteText || "",
+      })),
+      ...course.corequisites.map((code) => ({
+        code,
+        type: "corequisite" as const,
+        sourceText: course.prerequisiteText || "",
+      })),
     ];
 
     for (const relationship of relationships) {

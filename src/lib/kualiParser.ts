@@ -2,10 +2,7 @@ import crypto from "node:crypto";
 import * as cheerio from "cheerio";
 import type { Element } from "domhandler";
 import { GroupCategory, DegreeLevel } from "@/types/program";
-import {
-  isRawProgramListItem,
-  isRawProgramDetail,
-} from "@/types/kualiRaw";
+import { isRawProgramListItem, isRawProgramDetail } from "@/types/kualiRaw";
 import {
   CatalogProgram,
   RequirementGroupDomain,
@@ -138,7 +135,7 @@ export function parseProgramListItem(raw: unknown): {
 
 export function parseRequirementTree(
   rawHtml: string,
-  basePath = "root"
+  basePath = "root",
 ): { groups: RequirementGroupDomain[]; totalCredits: number; warnings: ParserWarning[] } {
   const warnings: ParserWarning[] = [];
   const groups: RequirementGroupDomain[] = [];
@@ -226,15 +223,12 @@ function getDirectRuleText($: cheerio.CheerioAPI, element: Element): string {
   return clone.text().replace(/\s+/g, " ").trim();
 }
 
-function extractRuleMetadata(
-  sourceText: string,
-  courses: CourseRequirementDomain[]
-): RequirementRuleMetadata {
+function extractRuleMetadata(sourceText: string, courses: CourseRequirementDomain[]): RequirementRuleMetadata {
   const metadata: RequirementRuleMetadata = sourceText ? { sourceText } : {};
   const creditMatch = sourceText.match(/(\d+)\s*credit\(s\)/i);
   const rangeMatch = sourceText.match(/\b(\d{3})\s*(?:-|–|to)\s*(\d{3})\b/);
   const subjectMatch = sourceText.match(
-    /(?:from\s+(?:subject\(s\):\s*)?)([A-Z]{2,4}(?:\s*,\s*[A-Z]{2,4})*(?:\s*,?\s*(?:or|and)\s*[A-Z]{2,4})?)\s+(?:within|from|in)\b/
+    /(?:from\s+(?:subject\(s\):\s*)?)([A-Z]{2,4}(?:\s*,\s*[A-Z]{2,4})*(?:\s*,?\s*(?:or|and)\s*[A-Z]{2,4})?)\s+(?:within|from|in)\b/,
   );
 
   if (creditMatch) metadata.minimumCredits = Number(creditMatch[1]);
@@ -258,7 +252,7 @@ function extractRuleMetadata(
 function parseCourseAnchor(
   $: cheerio.CheerioAPI,
   anchorElement: Element,
-  sourcePath: string
+  sourcePath: string,
 ): CourseRequirementDomain | null {
   const anchor = $(anchorElement);
   const courseCode = normalizeCourseCode(anchor.text());
@@ -267,7 +261,10 @@ function parseCourseAnchor(
   const href = anchor.attr("href") || "";
   const pidMatch = href.match(/\/courses\/view\/([a-zA-Z0-9_]+)/);
   const parentLiText = anchor.closest("li").text().replace(/\s+/g, " ").trim();
-  const titleText = parentLiText.replace(anchor.text(), "").replace(/^\s*-\s*/, "").trim();
+  const titleText = parentLiText
+    .replace(anchor.text(), "")
+    .replace(/^\s*-\s*/, "")
+    .trim();
   const creditMatch = titleText.match(/\((\d+)(?:\s*-\s*\d+)?\)/);
 
   return {
@@ -280,7 +277,10 @@ function parseCourseAnchor(
 }
 
 function directElements($: cheerio.CheerioAPI, owner: Element): Element[] {
-  return $(owner).children().toArray().filter((child): child is Element => child.type === "tag");
+  return $(owner)
+    .children()
+    .toArray()
+    .filter((child): child is Element => child.type === "tag");
 }
 
 function isRuleView($: cheerio.CheerioAPI, element: Element): boolean {
@@ -300,25 +300,25 @@ function normalizeRuleTitle(text: string, ruleType: RuleType): string {
   }
   if (ruleType === "choose_credits") {
     const credits = inferMinimumCredits(normalized);
-    return credits ? `Complete ${credits} credits from the following` : normalized || "Complete credits from the following";
+    return credits
+      ? `Complete ${credits} credits from the following`
+      : normalized || "Complete credits from the following";
   }
   return normalized || "Complete all of the following";
 }
 
-function collectCourses(
-  $: cheerio.CheerioAPI,
-  owner: Element,
-  sourcePath: string
-): CourseRequirementDomain[] {
+function collectCourses($: cheerio.CheerioAPI, owner: Element, sourcePath: string): CourseRequirementDomain[] {
   const seen = new Set<string>();
   const courses: CourseRequirementDomain[] = [];
-  $(owner).find("a[href*='/courses/view/']").each((index, anchor) => {
-    const course = parseCourseAnchor($, anchor, `${sourcePath}.course[${index}]`);
-    if (course && !seen.has(course.courseCode)) {
-      seen.add(course.courseCode);
-      courses.push(course);
-    }
-  });
+  $(owner)
+    .find("a[href*='/courses/view/']")
+    .each((index, anchor) => {
+      const course = parseCourseAnchor($, anchor, `${sourcePath}.course[${index}]`);
+      if (course && !seen.has(course.courseCode)) {
+        seen.add(course.courseCode);
+        courses.push(course);
+      }
+    });
   return courses;
 }
 
@@ -337,12 +337,9 @@ function createSemanticRule(
   owner: Element,
   parent: RequirementGroupDomain,
   sourcePath: string,
-  index: number
+  index: number,
 ): RequirementGroupDomain {
-  const result = $(owner)
-    .find("[data-test$='-result']")
-    .first()
-    .get(0);
+  const result = $(owner).find("[data-test$='-result']").first().get(0);
   const ruleText = getDirectRuleText($, owner) || (result ? getDirectRuleText($, result) : "");
   const courses = collectCourses($, owner, sourcePath);
   const ruleType = inferRuleType(ruleText);
@@ -384,7 +381,7 @@ function parseRequirementContainer(
   owner: Element,
   parent: RequirementGroupDomain,
   parentPath: string,
-  skipHeaders = false
+  skipHeaders = false,
 ): void {
   let position = 0;
   for (const child of directElements($, owner)) {
@@ -445,10 +442,7 @@ function parseRequirementContainer(
   }
 }
 
-export function parseProgramDetail(
-  raw: unknown,
-  catalogId = "6349a3f9164d00001c6c80da"
-): CatalogProgram {
+export function parseProgramDetail(raw: unknown, catalogId = "6349a3f9164d00001c6c80da"): CatalogProgram {
   if (!isRawProgramDetail(raw)) {
     throw new Error("Invalid Kuali program detail payload");
   }
@@ -462,10 +456,11 @@ export function parseProgramDetail(
   const catalogYearLabel = "2025-2026";
   const sourceUrl = `https://snhu.kuali.co/api/v1/catalog/program/${catalogId}/${sourcePid}`;
 
-  const { groups, totalCredits: parsedCredits, warnings: treeWarnings } = parseRequirementTree(
-    raw.rulesRequirements || "",
-    `program[${sourcePid}]`
-  );
+  const {
+    groups,
+    totalCredits: parsedCredits,
+    warnings: treeWarnings,
+  } = parseRequirementTree(raw.rulesRequirements || "", `program[${sourcePid}]`);
 
   warnings.push(...treeWarnings);
 

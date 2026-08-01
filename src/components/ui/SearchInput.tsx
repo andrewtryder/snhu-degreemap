@@ -1,8 +1,7 @@
 import React from "react";
 import { SearchIcon, XIcon } from "lucide-react";
 
-export interface SearchInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange"> {
+export interface SearchInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange"> {
   value: string;
   onChange: (value: string) => void;
   ariaLabel?: string;

@@ -12,14 +12,7 @@ export interface DialogProps {
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
 }
 
-export function Dialog({
-  isOpen,
-  onClose,
-  title,
-  description,
-  children,
-  maxWidth = "lg",
-}: DialogProps) {
+export function Dialog({ isOpen, onClose, title, description, children, maxWidth = "lg" }: DialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
 
@@ -30,7 +23,7 @@ export function Dialog({
       const timer = setTimeout(() => {
         if (dialogRef.current) {
           const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
           );
           if (focusable.length > 0) {
             focusable[0].focus();
@@ -49,7 +42,7 @@ export function Dialog({
 
         if (event.key === "Tab" && dialogRef.current) {
           const focusableElements = dialogRef.current.querySelectorAll<HTMLElement>(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
           );
           if (focusableElements.length === 0) return;
 
@@ -95,10 +88,7 @@ export function Dialog({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-      role="presentation"
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" role="presentation">
       <div
         className="fixed inset-0 bg-on-surface/40 backdrop-blur-xs transition-opacity"
         onClick={onClose}

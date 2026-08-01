@@ -11,11 +11,51 @@ import { CourseNodeData, PrerequisiteEdgeData, RequirementGroup } from "@/types/
 
 describe("graphTransformer Analysis Engine", () => {
   const sampleNodes: CourseNodeData[] = [
-    { id: "CS110", code: "CS 110", title: "Intro to CS", credits: 3, groupCode: "core", groupName: "Core", groupCategory: "core" },
-    { id: "CS110", code: "CS 110", title: "Intro to CS (Duplicate)", credits: 3, groupCode: "core", groupName: "Core", groupCategory: "core" },
-    { id: "CS210", code: "CS 210", title: "Programming Languages", credits: 3, groupCode: "major", groupName: "Major", groupCategory: "major" },
-    { id: "CS300", code: "CS 300", title: "Data Structures", credits: 3, groupCode: "major", groupName: "Major", groupCategory: "major" },
-    { id: "CS499", code: "CS 499", title: "Capstone", credits: 3, groupCode: "major", groupName: "Major", groupCategory: "major" },
+    {
+      id: "CS110",
+      code: "CS 110",
+      title: "Intro to CS",
+      credits: 3,
+      groupCode: "core",
+      groupName: "Core",
+      groupCategory: "core",
+    },
+    {
+      id: "CS110",
+      code: "CS 110",
+      title: "Intro to CS (Duplicate)",
+      credits: 3,
+      groupCode: "core",
+      groupName: "Core",
+      groupCategory: "core",
+    },
+    {
+      id: "CS210",
+      code: "CS 210",
+      title: "Programming Languages",
+      credits: 3,
+      groupCode: "major",
+      groupName: "Major",
+      groupCategory: "major",
+    },
+    {
+      id: "CS300",
+      code: "CS 300",
+      title: "Data Structures",
+      credits: 3,
+      groupCode: "major",
+      groupName: "Major",
+      groupCategory: "major",
+    },
+    {
+      id: "CS499",
+      code: "CS 499",
+      title: "Capstone",
+      credits: 3,
+      groupCode: "major",
+      groupName: "Major",
+      groupCategory: "major",
+    },
   ];
 
   const sampleEdges: PrerequisiteEdgeData[] = [
@@ -70,10 +110,47 @@ describe("graphTransformer Analysis Engine", () => {
 
   it("keeps corequisites, external nodes, and unresolved nodes out of sequence insights", () => {
     const nodes: CourseNodeData[] = [
-      { id: "BUS100", code: "BUS 100", title: "Business", credits: 3, groupCode: "core", groupName: "Core", groupCategory: "core", resolutionStatus: "resolved" },
-      { id: "BUS200", code: "BUS 200", title: "Business II", credits: 3, groupCode: "core", groupName: "Core", groupCategory: "core", resolutionStatus: "resolved" },
-      { id: "ACC201", code: "ACC 201", title: "External", credits: null, groupCode: "external", groupName: "External Prerequisites", groupCategory: "other", isExternal: true, resolutionStatus: "unavailable" },
-      { id: "PSY300", code: "PSY 300", title: "Unavailable", credits: 3, groupCode: "major", groupName: "Major", groupCategory: "major", resolutionStatus: "failed" },
+      {
+        id: "BUS100",
+        code: "BUS 100",
+        title: "Business",
+        credits: 3,
+        groupCode: "core",
+        groupName: "Core",
+        groupCategory: "core",
+        resolutionStatus: "resolved",
+      },
+      {
+        id: "BUS200",
+        code: "BUS 200",
+        title: "Business II",
+        credits: 3,
+        groupCode: "core",
+        groupName: "Core",
+        groupCategory: "core",
+        resolutionStatus: "resolved",
+      },
+      {
+        id: "ACC201",
+        code: "ACC 201",
+        title: "External",
+        credits: null,
+        groupCode: "external",
+        groupName: "External Prerequisites",
+        groupCategory: "other",
+        isExternal: true,
+        resolutionStatus: "unavailable",
+      },
+      {
+        id: "PSY300",
+        code: "PSY 300",
+        title: "Unavailable",
+        credits: 3,
+        groupCode: "major",
+        groupName: "Major",
+        groupCategory: "major",
+        resolutionStatus: "failed",
+      },
     ];
     const edges: PrerequisiteEdgeData[] = [
       { id: "coreq", source: "BUS100", target: "BUS200", type: "corequisite" },
@@ -94,7 +171,12 @@ describe("graphTransformer Analysis Engine", () => {
       totalCredits: 12,
       ruleType: "choose_credits",
       minimumCredits: 12,
-      ruleMetadata: { explicitCourseCodes: ["CS 210", "CS 300"], eligibleSubjectCodes: ["CS"], minimumCourseLevel: 200, maximumCourseLevel: 499 },
+      ruleMetadata: {
+        explicitCourseCodes: ["CS 210", "CS 300"],
+        eligibleSubjectCodes: ["CS"],
+        minimumCourseLevel: 200,
+        maximumCourseLevel: 499,
+      },
       items: [],
       colorTheme: { bg: "", border: "", text: "", badgeBg: "", badgeText: "" },
     };

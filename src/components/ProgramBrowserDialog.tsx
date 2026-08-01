@@ -12,7 +12,13 @@ import { GraduationCapIcon, ChevronRightIcon, FilterIcon, Loader2Icon } from "lu
 export interface ProgramBrowserDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  initialPrograms?: Array<{ slug: string; title: string; credential: string; degreeLevel: string; catalogYear?: string }>;
+  initialPrograms?: Array<{
+    slug: string;
+    title: string;
+    credential: string;
+    degreeLevel: string;
+    catalogYear?: string;
+  }>;
 }
 
 export function ProgramBrowserDialog({ isOpen, onClose, initialPrograms = [] }: ProgramBrowserDialogProps) {
@@ -21,7 +27,9 @@ export function ProgramBrowserDialog({ isOpen, onClose, initialPrograms = [] }: 
   const [selectedLevel, setSelectedLevel] = useState<DegreeLevel | "ALL">("ALL");
   const [selectedYear, setSelectedYear] = useState<string>("2025-2026");
   const [isLoading, setIsLoading] = useState(false);
-  const [searchResults, setSearchResults] = useState<Array<{ slug: string; title: string; credential: string; degreeLevel: string }>>([]);
+  const [searchResults, setSearchResults] = useState<
+    Array<{ slug: string; title: string; credential: string; degreeLevel: string }>
+  >([]);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -163,9 +171,7 @@ export function ProgramBrowserDialog({ isOpen, onClose, initialPrograms = [] }: 
                     <h3 className="font-bold text-on-surface group-hover:text-primary transition-colors text-sm sm:text-base">
                       {program.title}
                     </h3>
-                    <p className="text-xs text-on-surface-variant mt-0.5">
-                      {program.credential}
-                    </p>
+                    <p className="text-xs text-on-surface-variant mt-0.5">{program.credential}</p>
                   </div>
                 </div>
 

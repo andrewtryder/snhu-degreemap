@@ -23,7 +23,7 @@ export function deduplicateCourseNodes(nodesData: CourseNodeData[]): CourseNodeD
 
 export function detectCycles(
   nodesData: CourseNodeData[],
-  edgesData: PrerequisiteEdgeData[]
+  edgesData: PrerequisiteEdgeData[],
 ): { hasCycle: boolean; cycleNodes: string[] } {
   const adj = new Map<string, string[]>();
   for (const n of nodesData) {
@@ -68,10 +68,7 @@ export function detectCycles(
   return { hasCycle: false, cycleNodes: [] };
 }
 
-export function identifyStartingCourses(
-  nodesData: CourseNodeData[],
-  edgesData: PrerequisiteEdgeData[]
-): string[] {
+export function identifyStartingCourses(nodesData: CourseNodeData[], edgesData: PrerequisiteEdgeData[]): string[] {
   const targets = new Set(edgesData.filter((e) => e.type === "prerequisite").map((e) => e.target));
 
   return nodesData
@@ -81,15 +78,12 @@ export function identifyStartingCourses(
         !n.isExternal &&
         (n.resolutionStatus || "resolved") === "resolved" &&
         !targets.has(n.id) &&
-        !targets.has(n.code)
+        !targets.has(n.code),
     )
     .map((n) => n.code);
 }
 
-export function identifyCriticalCourses(
-  nodesData: CourseNodeData[],
-  edgesData: PrerequisiteEdgeData[]
-): string[] {
+export function identifyCriticalCourses(nodesData: CourseNodeData[], edgesData: PrerequisiteEdgeData[]): string[] {
   const outDegreeMap = new Map<string, number>();
 
   for (const e of edgesData) {
@@ -103,14 +97,14 @@ export function identifyCriticalCourses(
       (n) =>
         !n.isExternal &&
         (n.resolutionStatus || "resolved") === "resolved" &&
-        (outDegreeMap.get(n.id) || outDegreeMap.get(n.code) || 0) >= 2
+        (outDegreeMap.get(n.id) || outDegreeMap.get(n.code) || 0) >= 2,
     )
     .map((n) => n.code);
 }
 
 export function calculateLongestKnownPath(
   nodesData: CourseNodeData[],
-  edgesData: PrerequisiteEdgeData[]
+  edgesData: PrerequisiteEdgeData[],
 ): { longestPath: string[]; longestPathLength: number } {
   const adj = new Map<string, string[]>();
   const inDegree = new Map<string, number>();
@@ -181,11 +175,11 @@ export function calculateLongestKnownPath(
 export function buildDegreeGraph(
   rawNodes: CourseNodeData[],
   rawEdges: PrerequisiteEdgeData[],
-  requirementGroups: RequirementGroup[] = []
+  requirementGroups: RequirementGroup[] = [],
 ): CompleteDegreeGraph {
   const nodesData = deduplicateCourseNodes(rawNodes);
   const analyzableNodes = nodesData.filter(
-    (node) => !node.isExternal && (node.resolutionStatus || "resolved") === "resolved"
+    (node) => !node.isExternal && (node.resolutionStatus || "resolved") === "resolved",
   );
   const prerequisiteEdges = rawEdges.filter((edge) => edge.type === "prerequisite");
   const startingCourses = identifyStartingCourses(analyzableNodes, prerequisiteEdges);
@@ -210,8 +204,19 @@ export function buildDegreeGraph(
 
   const courseByCode = new Map(nodesData.map((node) => [normalizeCourseCode(node.code), node]));
   const addRequirement = (
-    group: Pick<RequirementGroup, "id" | "title" | "category" | "ruleType" | "minimumSelections" | "minimumCredits" | "ruleMetadata" | "sourceText" | "items">,
-    parentRequirementId?: string
+    group: Pick<
+      RequirementGroup,
+      | "id"
+      | "title"
+      | "category"
+      | "ruleType"
+      | "minimumSelections"
+      | "minimumCredits"
+      | "ruleMetadata"
+      | "sourceText"
+      | "items"
+    >,
+    parentRequirementId?: string,
   ) => {
     const id = `requirement_${group.id}`;
     nodes.push({
@@ -250,17 +255,20 @@ export function buildDegreeGraph(
 
     group.items.forEach((item, index) => {
       if (item.type === "group") {
-        addRequirement({
-          id: item.id,
-          title: item.title,
-          category: group.category,
-          ruleType: item.ruleType,
-          minimumSelections: item.minimumSelections,
-          minimumCredits: item.minimumCredits,
-          ruleMetadata: item.ruleMetadata,
-          sourceText: item.sourceText,
-          items: item.subItems || [],
-        }, id);
+        addRequirement(
+          {
+            id: item.id,
+            title: item.title,
+            category: group.category,
+            ruleType: item.ruleType,
+            minimumSelections: item.minimumSelections,
+            minimumCredits: item.minimumCredits,
+            ruleMetadata: item.ruleMetadata,
+            sourceText: item.sourceText,
+            items: item.subItems || [],
+          },
+          id,
+        );
       } else if (item.sourceText || item.textKind) {
         nodes.push({
           id: `information_${group.id}_${index}`,

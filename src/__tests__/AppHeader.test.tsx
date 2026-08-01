@@ -26,7 +26,7 @@ describe("AppHeader Component", () => {
     expect(searchInput).toBeInTheDocument();
     expect(searchInput).toHaveAttribute(
       "placeholder",
-      "Search programs, courses, or prerequisites (e.g. Computer Science, CS 300)..."
+      "Search programs, courses, or prerequisites (e.g. Computer Science, CS 300)...",
     );
   });
 

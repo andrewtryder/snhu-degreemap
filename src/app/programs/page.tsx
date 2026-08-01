@@ -21,10 +21,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/programs" },
 };
 
-export function filterProgramsByLevel(
-  programs: DegreeProgram[],
-  level: ProgramLevelCategory | "all"
-): DegreeProgram[] {
+export function filterProgramsByLevel(programs: DegreeProgram[], level: ProgramLevelCategory | "all"): DegreeProgram[] {
   if (level === "all") return programs;
   return programs.filter((program) => getProgramLevelCategory(program) === level);
 }
@@ -36,7 +33,7 @@ function levelHref(level: ProgramLevelCategory | "all") {
 export function ProgramLevelFilterPills({ level }: { level: ProgramLevelCategory | "all" }) {
   return (
     <nav aria-label="Filter programs by credential level" className="flex flex-wrap gap-2">
-      {([{"value": "all", "label": "All"}, ...PROGRAM_LEVEL_FILTERS] as const).map((filter) => {
+      {([{ value: "all", label: "All" }, ...PROGRAM_LEVEL_FILTERS] as const).map((filter) => {
         const active = level === filter.value;
         return (
           <Link
@@ -68,14 +65,18 @@ async function ProgramsContent({ level }: { level: ProgramLevelCategory | "all" 
           Degree Programs Directory
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-on-surface-variant">
-          Browse unofficial SNHU degree requirements, major course maps, and prerequisite structures across active catalog years ({years.join(", ")}).
+          Browse unofficial SNHU degree requirements, major course maps, and prerequisite structures across active
+          catalog years ({years.join(", ")}).
         </p>
       </div>
 
       <ProgramLevelFilterPills level={level} />
 
       {filteredPrograms.length === 0 ? (
-        <div role="status" className="rounded-xl border border-surface-variant bg-surface-container-low p-6 text-sm text-on-surface-variant">
+        <div
+          role="status"
+          className="rounded-xl border border-surface-variant bg-surface-container-low p-6 text-sm text-on-surface-variant"
+        >
           No programs were found in this category.
         </div>
       ) : (
@@ -104,8 +105,14 @@ async function ProgramsContent({ level }: { level: ProgramLevelCategory | "all" 
               </div>
 
               <div className="flex items-center justify-between border-t border-surface-variant pt-3 text-xs text-on-surface-variant">
-                <span>{program.totalCredits == null ? "N/A Credits" : `${program.totalCredits} Credits`} • {program.requiredCourseCount} Courses</span>
-                <Link href={`/programs/${program.slug}`} className="flex items-center gap-1 font-semibold text-primary hover:underline">
+                <span>
+                  {program.totalCredits == null ? "N/A Credits" : `${program.totalCredits} Credits`} •{" "}
+                  {program.requiredCourseCount} Courses
+                </span>
+                <Link
+                  href={`/programs/${program.slug}`}
+                  className="flex items-center gap-1 font-semibold text-primary hover:underline"
+                >
                   Explore Map <ArrowRightIcon className="h-3.5 w-3.5" />
                 </Link>
               </div>
@@ -117,11 +124,7 @@ async function ProgramsContent({ level }: { level: ProgramLevelCategory | "all" 
   );
 }
 
-export default async function ProgramsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ level?: string }>;
-}) {
+export default async function ProgramsPage({ searchParams }: { searchParams: Promise<{ level?: string }> }) {
   const { level: rawLevel } = await searchParams;
   const level = parseProgramLevelFilter(rawLevel);
   const lastUpdated = await getCatalogLastUpdated();

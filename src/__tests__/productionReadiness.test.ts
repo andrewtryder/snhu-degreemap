@@ -40,9 +40,7 @@ describe("Production Readiness — Credential Normalization & Academic Data Safe
       category: "elective",
       ruleType: "choose_n",
       children: [],
-      courseRequirements: [
-        { courseCode: "CS 299", title: "Special Topic", credits: null, sourcePath: "c3" },
-      ],
+      courseRequirements: [{ courseCode: "CS 299", title: "Special Topic", credits: null, sourcePath: "c3" }],
       textRequirements: [],
     };
 

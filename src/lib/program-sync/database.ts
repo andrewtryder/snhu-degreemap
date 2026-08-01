@@ -23,9 +23,7 @@ export function getDbPool(): Pool {
   return poolInstance;
 }
 
-export async function withTransaction<T>(
-  callback: (client: PoolClient) => Promise<T>
-): Promise<T> {
+export async function withTransaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
   const pool = getDbPool();
   const client = await pool.connect();
   try {

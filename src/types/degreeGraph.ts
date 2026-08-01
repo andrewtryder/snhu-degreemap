@@ -1,17 +1,9 @@
 import { CourseNodeData, PrerequisiteEdgeData, RequirementRuleMetadata } from "./program";
 
 export type DegreeNodeType =
-  | "course"
-  | "elective_placeholder"
-  | "requirement_group"
-  | "informational"
-  | "unparsed_requirement";
+  "course" | "elective_placeholder" | "requirement_group" | "informational" | "unparsed_requirement";
 
-export type DegreeEdgeType =
-  | "prerequisite"
-  | "corequisite"
-  | "recommended"
-  | "requirement_membership";
+export type DegreeEdgeType = "prerequisite" | "corequisite" | "recommended" | "requirement_membership";
 
 export interface DegreeGraphNodeData extends CourseNodeData {
   nodeType: DegreeNodeType;

@@ -30,7 +30,9 @@ const corequisite: CourseNodeData = {
 
 describe("CourseDetailDrawer relationship uncertainty", () => {
   it("separates corequisites and never calls an unresolved course a starting course", () => {
-    render(<CourseDetailDrawer course={failedCourse} onClose={() => undefined} allCourses={[failedCourse, corequisite]} />);
+    render(
+      <CourseDetailDrawer course={failedCourse} onClose={() => undefined} allCourses={[failedCourse, corequisite]} />,
+    );
 
     expect(screen.getByText(/Catalog course details could not be resolved/i)).toBeInTheDocument();
     expect(screen.getByText(/Direct Corequisites \(1\)/)).toBeInTheDocument();

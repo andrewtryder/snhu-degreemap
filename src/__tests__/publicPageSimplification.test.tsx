@@ -46,10 +46,16 @@ describe("public page simplification", () => {
     expect(getProgramLevelCategory({ credential: "Bachelor of Arts", degreeLevel: "BA" })).toBe("bachelor");
     expect(getProgramLevelCategory({ credential: "Bachelor of Science", degreeLevel: "BS" })).toBe("bachelor");
     expect(getProgramLevelCategory({ credential: "Master of Science", degreeLevel: "MS" })).toBe("graduate");
-    expect(getProgramLevelCategory({ credential: "Graduate Certificate", degreeLevel: "Graduate Certificate" })).toBe("certificate");
+    expect(getProgramLevelCategory({ credential: "Graduate Certificate", degreeLevel: "Graduate Certificate" })).toBe(
+      "certificate",
+    );
     expect(getProgramLevelCategory({ credential: "Unclassified credential", degreeLevel: "Other" })).toBe("other");
 
-    expect(filterProgramsByLevel(fixturePrograms, "bachelor").every((program) => getProgramLevelCategory(program) === "bachelor")).toBe(true);
+    expect(
+      filterProgramsByLevel(fixturePrograms, "bachelor").every(
+        (program) => getProgramLevelCategory(program) === "bachelor",
+      ),
+    ).toBe(true);
   });
 
   it("renders URL-driven directory level pills", () => {
@@ -64,12 +70,22 @@ describe("public page simplification", () => {
 
   it("only renders all-of instructions for actionable requirements", () => {
     const course: RequirementItem = { id: "CS100", type: "single", title: "CS 100: Foundations", credits: 3 };
-    const textOnly: RequirementItem = { id: "txt_1", type: "single", title: "Consult the catalog.", credits: null, isUnparsed: true };
+    const textOnly: RequirementItem = {
+      id: "txt_1",
+      type: "single",
+      title: "Consult the catalog.",
+      credits: null,
+      isUnparsed: true,
+    };
 
     expect(getRequirementInstruction({ ruleType: "all_of", items: [] })).toBeNull();
     expect(getRequirementInstruction({ ruleType: "all_of", items: [course] })).toBe("Complete all of the following");
-    expect(getRequirementInstruction({ ruleType: "choose_n", minimumSelections: 2, items: [course] })).toBe("Choose 2 of the following");
+    expect(getRequirementInstruction({ ruleType: "choose_n", minimumSelections: 2, items: [course] })).toBe(
+      "Choose 2 of the following",
+    );
     expect(getRequirementInstruction({ ruleType: "all_of", items: [textOnly] })).toBeNull();
-    expect(getRequirementInstruction({ ruleType: "all_of", items: [{ ...course, credits: null }] })).toBe("Complete all of the following");
+    expect(getRequirementInstruction({ ruleType: "all_of", items: [{ ...course, credits: null }] })).toBe(
+      "Complete all of the following",
+    );
   });
 });

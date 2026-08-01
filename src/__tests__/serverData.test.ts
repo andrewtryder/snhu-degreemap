@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  getPrograms,
-  getProgramBySlug,
-  searchPrograms,
-  getCatalogYears,
-} from "@/lib/serverData";
+import { getPrograms, getProgramBySlug, searchPrograms, getCatalogYears } from "@/lib/serverData";
 
 describe("serverData Access Layer", () => {
   it("retrieves list of all programs with optional filtering", async () => {

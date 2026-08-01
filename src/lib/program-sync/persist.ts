@@ -6,7 +6,7 @@ import { normalizeCourseCode } from "@/lib/courseCode";
 export async function persistProgramToStaging(
   client: PoolClient,
   program: CatalogProgram,
-  catalogDbId: string
+  catalogDbId: string,
 ): Promise<void> {
   const programDbId = `prog_${program.sourcePid}`;
   const totalCredits = typeof program.totalCredits === "number" ? program.totalCredits : null;
@@ -40,7 +40,7 @@ export async function persistProgramToStaging(
       program.sourceUrl,
       program.sourceHash,
       (program.warnings || []).length,
-    ]
+    ],
   );
 
   // Recursively persist requirement groups
@@ -55,7 +55,7 @@ async function persistGroupToStaging(
   programDbId: string,
   parentGroupId: string | null,
   group: RequirementGroupDomain,
-  sortOrder: number
+  sortOrder: number,
 ): Promise<void> {
   const groupId = `grp_${programDbId}_${group.stableSourcePath.replace(/[^a-zA-Z0-9_]/g, "_")}`;
 
@@ -94,7 +94,7 @@ async function persistGroupToStaging(
       (group.warnings || []).length,
       group.rawText || null,
       JSON.stringify(group.ruleMetadata || {}),
-    ]
+    ],
   );
 
   // Persist course requirements
@@ -118,7 +118,7 @@ async function persistGroupToStaging(
         credits,
         Boolean(cr.optional),
         cOrder++,
-      ]
+      ],
     );
   }
 
@@ -132,7 +132,7 @@ async function persistGroupToStaging(
         id, requirement_group_id, source_path, text, sort_order, is_unparsed
       ) VALUES ($1, $2, $3, $4, $5, $6);
     `,
-      [txtId, groupId, `${group.stableSourcePath}.text[${tOrder}]`, txt, tOrder++, false]
+      [txtId, groupId, `${group.stableSourcePath}.text[${tOrder}]`, txt, tOrder++, false],
     );
   }
 
@@ -143,10 +143,7 @@ async function persistGroupToStaging(
   }
 }
 
-export async function persistCoursesToStaging(
-  client: PoolClient,
-  courses: NormalizedCourseDetails[]
-): Promise<void> {
+export async function persistCoursesToStaging(client: PoolClient, courses: NormalizedCourseDetails[]): Promise<void> {
   for (const course of courses) {
     const courseCode = normalizeCourseCode(course.code);
     const credits = typeof course.credits === "number" ? course.credits : null;
@@ -170,15 +167,12 @@ export async function persistCoursesToStaging(
         courseCode.split(" ")[0] || "GEN",
         course.pid,
         course.resolutionStatus || "resolved",
-      ]
+      ],
     );
   }
 }
 
-export async function persistEdgesToStaging(
-  client: PoolClient,
-  edges: PrerequisiteEdgeDomain[]
-): Promise<void> {
+export async function persistEdgesToStaging(client: PoolClient, edges: PrerequisiteEdgeDomain[]): Promise<void> {
   for (const edge of edges) {
     await client.query(
       `
@@ -187,7 +181,7 @@ export async function persistEdgesToStaging(
       ) VALUES ($1, $2, $3, $4)
       ON CONFLICT (source_course_code, target_course_code, relationship_type) DO NOTHING;
     `,
-      [edge.source, edge.target, edge.type, edge.label || null]
+      [edge.source, edge.target, edge.type, edge.label || null],
     );
   }
 }

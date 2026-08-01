@@ -22,7 +22,9 @@ describe("Computer Science Program Page", () => {
     expect(screen.queryByText("Known Courses")).not.toBeInTheDocument();
     expect(screen.queryByText("Prerequisite Depth")).not.toBeInTheDocument();
     expect(screen.queryByText("Est. Duration")).not.toBeInTheDocument();
-    expect(screen.queryByText(/This degree map represents an unofficial possible course sequence/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/This degree map represents an unofficial possible course sequence/i),
+    ).not.toBeInTheDocument();
   }, 15000);
 
   it("triggers 404 for invalid program slug", async () => {
@@ -51,7 +53,7 @@ describe("Computer Science Program Page", () => {
             ],
           },
         ]}
-      />
+      />,
     );
 
     expect(screen.getByText("Cornerstone Math (CMAT)")).toBeInTheDocument();

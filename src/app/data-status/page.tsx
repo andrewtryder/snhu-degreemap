@@ -7,13 +7,21 @@ import { Badge } from "@/components/ui/Badge";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { getPrograms, getCatalogYears, getProgramSyncState } from "@/lib/serverData";
 import { kualiConfig } from "@/config/kualiConfig";
-import { CheckCircle2Icon, DatabaseIcon, AlertTriangleIcon, ActivityIcon, RefreshCwIcon, XCircleIcon } from "lucide-react";
+import {
+  CheckCircle2Icon,
+  DatabaseIcon,
+  AlertTriangleIcon,
+  ActivityIcon,
+  RefreshCwIcon,
+  XCircleIcon,
+} from "lucide-react";
 
 export const revalidate = 300;
 
 export const metadata = {
   title: "Data Status & Catalog Sync Health | SNHU Degree Map",
-  description: "Live status dashboard displaying catalog synchronization health, program counts, and parser diagnostics for SNHU Degree Map.",
+  description:
+    "Live status dashboard displaying catalog synchronization health, program counts, and parser diagnostics for SNHU Degree Map.",
 };
 
 export default async function DataStatusPage() {
@@ -26,7 +34,11 @@ export default async function DataStatusPage() {
 
   const isSyncing = syncState?.status === "syncing";
   const hasError = !!syncState?.last_error;
-  const statusColor = isSyncing ? "text-blue-700 bg-blue-50 border-blue-200" : hasError ? "text-red-700 bg-red-50 border-red-200" : "text-emerald-700 bg-emerald-50 border-emerald-200";
+  const statusColor = isSyncing
+    ? "text-blue-700 bg-blue-50 border-blue-200"
+    : hasError
+      ? "text-red-700 bg-red-50 border-red-200"
+      : "text-emerald-700 bg-emerald-50 border-emerald-200";
   const StatusIcon = isSyncing ? RefreshCwIcon : hasError ? XCircleIcon : CheckCircle2Icon;
   const statusPulse = isSyncing ? "bg-blue-500 animate-spin" : hasError ? "bg-red-500" : "bg-emerald-500 animate-pulse";
   const statusText = isSyncing ? "Syncing..." : hasError ? "Sync Failed" : "All Systems Operational";
@@ -41,8 +53,13 @@ export default async function DataStatusPage() {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Badge variant="outline">Live System Status</Badge>
-                <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${statusColor}`}>
-                  <StatusIcon className={`h-3.5 w-3.5 ${statusPulse.includes("spin") || statusPulse.includes("pulse") ? statusPulse.split(" ")[1] : ""}`} /> {statusText}
+                <span
+                  className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${statusColor}`}
+                >
+                  <StatusIcon
+                    className={`h-3.5 w-3.5 ${statusPulse.includes("spin") || statusPulse.includes("pulse") ? statusPulse.split(" ")[1] : ""}`}
+                  />{" "}
+                  {statusText}
                 </span>
               </div>
               <h1 className="font-[family-name:var(--font-headline)] text-2xl sm:text-3xl font-extrabold text-primary">
@@ -81,7 +98,11 @@ export default async function DataStatusPage() {
             <MetricCard
               label="Last Sync Run"
               value={syncState?.completed_at ? new Date(syncState.completed_at).toLocaleDateString() : "Never"}
-              subtext={syncState?.next_due_at ? `Next sync: ${new Date(syncState.next_due_at).toLocaleDateString()}` : "Scheduled via CircleCI"}
+              subtext={
+                syncState?.next_due_at
+                  ? `Next sync: ${new Date(syncState.next_due_at).toLocaleDateString()}`
+                  : "Scheduled via CircleCI"
+              }
               icon={<ActivityIcon className="h-5 w-5 text-primary" />}
             />
           </div>

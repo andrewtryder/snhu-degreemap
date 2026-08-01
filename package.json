@@ -11,8 +11,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "ci:config": "circleci config validate .circleci/config.yml",
+    "ci:check": "npm run format:check && npm run lint && npm run test && npm run build && npm run ci:config && git diff --check",
+    "prepare": "husky",
     "db:migrate": "tsx scripts/migrate.ts",
     "program:bootstrap": "tsx scripts/program-bootstrap.ts",
     "program:sync": "tsx scripts/program-sync.ts"
@@ -49,6 +54,8 @@
     "vitest": "^4.1.10"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "prettier": "^3.9.6",
     "tsx": "^4.23.1"
   }
 }

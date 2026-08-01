@@ -37,7 +37,9 @@ describe("graphLayout utility", () => {
   });
 
   it("renders requirement membership with a dotted, arrowless, accessible edge", () => {
-    const { edges } = layoutDegreeGraph(csProgram.nodes, [{ id: "membership", source: "IT140", target: "MAT140", type: "requirement_membership" }]);
+    const { edges } = layoutDegreeGraph(csProgram.nodes, [
+      { id: "membership", source: "IT140", target: "MAT140", type: "requirement_membership" },
+    ]);
     expect(edges[0].style?.strokeDasharray).toBe("2,4");
     expect(edges[0].markerEnd).toBeUndefined();
     expect(edges[0].ariaLabel).toBe("option within requirement");

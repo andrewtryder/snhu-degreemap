@@ -6,7 +6,8 @@ import { getCatalogLastUpdated } from "@/lib/serverData";
 
 export const metadata = {
   title: "About SNHU Degree Map | Unofficial Prerequisite Visualization Tool",
-  description: "Learn about SNHU Degree Map, an unofficial degree requirement and course prerequisite mapping tool designed for Southern New Hampshire University students.",
+  description:
+    "Learn about SNHU Degree Map, an unofficial degree requirement and course prerequisite mapping tool designed for Southern New Hampshire University students.",
 };
 
 export default async function AboutPage() {
@@ -21,7 +22,8 @@ export default async function AboutPage() {
               About SNHU Degree Map
             </h1>
             <p className="text-sm leading-relaxed text-on-surface-variant">
-              SNHU Degree Map is an unofficial planning and visualization tool that helps students explore how degree requirements and known prerequisite relationships fit together.
+              SNHU Degree Map is an unofficial planning and visualization tool that helps students explore how degree
+              requirements and known prerequisite relationships fit together.
             </p>
           </div>
 
@@ -29,28 +31,53 @@ export default async function AboutPage() {
             <section className="space-y-2">
               <h2 className="text-lg font-bold text-on-surface">Why This Site Exists</h2>
               <p>
-                As an SNHU graduate, I know that understanding how required courses, electives, concentrations, and prerequisites fit together can be difficult. This site makes published catalog information easier to explore visually while keeping the source material in view.
+                As an SNHU graduate, I know that understanding how required courses, electives, concentrations, and
+                prerequisites fit together can be difficult. This site makes published catalog information easier to
+                explore visually while keeping the source material in view.
               </p>
             </section>
 
             <section className="space-y-2">
               <h2 className="text-lg font-bold text-on-surface">How It Works</h2>
               <p>
-                Program and course information is synchronized from SNHU&apos;s published catalog. Requirement groups are shown as a readable list, and known prerequisite and corequisite relationships are rendered in an interactive graph. Some relationships may not appear when source rules are prose-based, incomplete, or cannot be expressed as course-to-course edges.
+                Program and course information is synchronized from SNHU&apos;s published catalog. Requirement groups
+                are shown as a readable list, and known prerequisite and corequisite relationships are rendered in an
+                interactive graph. Some relationships may not appear when source rules are prose-based, incomplete, or
+                cannot be expressed as course-to-course edges.
               </p>
             </section>
 
             <Card className="border-amber-300 bg-amber-50/50 space-y-2">
               <h2 className="text-lg font-bold text-amber-900">Important Disclaimer</h2>
               <p className="text-amber-800">
-                This site is unofficial and is not affiliated with or endorsed by SNHU. It is not an official degree audit, and the graph is not an official semester-by-semester course sequence. Verify requirements with the official catalog and an academic advisor.
+                This site is unofficial and is not affiliated with or endorsed by SNHU. It is not an official degree
+                audit, and the graph is not an official semester-by-semester course sequence. Verify requirements with
+                the official catalog and an academic advisor.
               </p>
             </Card>
 
             <section className="space-y-2">
               <h2 className="text-lg font-bold text-on-surface">Related Projects</h2>
               <p>
-                Explore the <a className="font-semibold text-primary hover:underline" href="https://snhu-courses.vercel.app" target="_blank" rel="noreferrer">SNHU Course Prerequisites Tool</a> and the <a className="font-semibold text-primary hover:underline" href="https://snhu-transfers.vercel.app" target="_blank" rel="noreferrer">SNHU Transfer Equivalency List</a> for complementary planning information.
+                Explore the{" "}
+                <a
+                  className="font-semibold text-primary hover:underline"
+                  href="https://snhu-courses.vercel.app"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  SNHU Course Prerequisites Tool
+                </a>{" "}
+                and the{" "}
+                <a
+                  className="font-semibold text-primary hover:underline"
+                  href="https://snhu-transfers.vercel.app"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  SNHU Transfer Equivalency List
+                </a>{" "}
+                for complementary planning information.
               </p>
             </section>
           </div>

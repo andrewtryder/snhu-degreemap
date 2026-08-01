@@ -1,11 +1,6 @@
 import { DegreeLevel } from "@/types/program";
 
-export type ProgramLevelCategory =
-  | "associate"
-  | "bachelor"
-  | "graduate"
-  | "certificate"
-  | "other";
+export type ProgramLevelCategory = "associate" | "bachelor" | "graduate" | "certificate" | "other";
 
 export const PROGRAM_LEVEL_FILTERS = [
   { value: "associate", label: "Associate" },
@@ -26,11 +21,7 @@ export function getProgramLevelCategory({ credential, degreeLevel }: ProgramLeve
   if (normalizedCredential.includes("certificate") || normalizedLevel.includes("certificate")) {
     return "certificate";
   }
-  if (
-    normalizedLevel === "aa" ||
-    normalizedLevel === "as" ||
-    normalizedCredential.includes("associate")
-  ) {
+  if (normalizedLevel === "aa" || normalizedLevel === "as" || normalizedCredential.includes("associate")) {
     return "associate";
   }
   if (

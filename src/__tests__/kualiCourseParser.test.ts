@@ -27,7 +27,7 @@ describe("kualiCourseParser utility", () => {
         title: "Applied Statistics",
         subjectCode: { name: "MAT" },
       },
-      "MAT240"
+      "MAT240",
     );
 
     expect(course.code).toBe("MAT 240");
@@ -53,14 +53,12 @@ describe("kualiCourseParser utility", () => {
     expect(getCourseCodeKey("ACC-201")).toBe("ACC201");
 
     const parsed = extractCoursePrerequisitesFromText(
-      "<p>Prerequisite: ACC-201 or ACC\u00a0202 with a grade of C or better.</p><p>Corequisite: BUS203.</p>"
+      "<p>Prerequisite: ACC-201 or ACC\u00a0202 with a grade of C or better.</p><p>Corequisite: BUS203.</p>",
     );
 
     expect(parsed.prerequisites).toEqual(["ACC 201", "ACC 202"]);
     expect(parsed.corequisites).toEqual(["BUS 203"]);
-    expect(parsed.relationships).toContainEqual(
-      expect.objectContaining({ code: "BUS 203", type: "corequisite" })
-    );
+    expect(parsed.relationships).toContainEqual(expect.objectContaining({ code: "BUS 203", type: "corequisite" }));
   });
 
   it("generates prerequisite edges matching course catalog dependencies", () => {

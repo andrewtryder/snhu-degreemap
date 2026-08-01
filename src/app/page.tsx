@@ -5,9 +5,7 @@ import { AppFooter } from "@/components/AppFooter";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getCatalogLastUpdated, getPrograms } from "@/lib/serverData";
-import {
-  ArrowRightIcon,
-} from "lucide-react";
+import { ArrowRightIcon } from "lucide-react";
 
 export const revalidate = false;
 
@@ -27,7 +25,8 @@ export default async function HomePage() {
               </h1>
 
               <p className="text-base sm:text-lg text-on-surface-variant leading-relaxed">
-                Explore interactive prerequisite graphs, degree requirement structures, and course sequencing for Southern New Hampshire University programs.
+                Explore interactive prerequisite graphs, degree requirement structures, and course sequencing for
+                Southern New Hampshire University programs.
               </p>
             </div>
           </Card>
@@ -53,30 +52,24 @@ export default async function HomePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {programs.slice(0, 15).map((program) => (
-                <Card
-                  key={program.slug}
-                  hoverable
-                  className="flex flex-col justify-between space-y-4"
-                >
+                <Card key={program.slug} hoverable className="flex flex-col justify-between space-y-4">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <Badge variant="outline">{program.degreeLevel}</Badge>
-                      <span className="text-[11px] font-semibold text-outline">
-                        {program.catalogYear}
-                      </span>
+                      <span className="text-[11px] font-semibold text-outline">{program.catalogYear}</span>
                     </div>
 
                     <h3 className="text-lg font-bold text-on-surface hover:text-primary transition-colors">
                       <Link href={`/programs/${program.slug}`}>{program.title}</Link>
                     </h3>
 
-                    <p className="text-xs text-on-surface-variant line-clamp-2">
-                      {program.description}
-                    </p>
+                    <p className="text-xs text-on-surface-variant line-clamp-2">{program.description}</p>
                   </div>
 
                   <div className="border-t border-surface-variant pt-3 flex items-center justify-between text-xs text-on-surface-variant">
-                    <span>{program.totalCredits == null ? "N/A Total Credits" : `${program.totalCredits} Total Credits`}</span>
+                    <span>
+                      {program.totalCredits == null ? "N/A Total Credits" : `${program.totalCredits} Total Credits`}
+                    </span>
                     <Link
                       href={`/programs/${program.slug}`}
                       className="font-semibold text-primary hover:underline flex items-center gap-1"

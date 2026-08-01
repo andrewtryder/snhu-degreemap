@@ -67,18 +67,19 @@ export const CATEGORY_PALETTES: Record<GroupCategory, CategoryPalette> = {
 
 export function buildGraphNodesAndEdges(
   nodesData: Array<CourseNodeData | DegreeGraphNodeData>,
-  edgesData: PrerequisiteEdgeData[]
+  edgesData: PrerequisiteEdgeData[],
 ): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = nodesData.map((course) => {
     const palette = CATEGORY_PALETTES[course.groupCategory] || CATEGORY_PALETTES.other;
 
     return {
       id: course.id,
-      type: ("nodeType" in course && course.nodeType === "requirement_group")
-        ? "requirementRuleNode"
-        : ("nodeType" in course && (course.nodeType === "informational" || course.nodeType === "unparsed_requirement"))
-          ? "informationalNode"
-          : "courseNode",
+      type:
+        "nodeType" in course && course.nodeType === "requirement_group"
+          ? "requirementRuleNode"
+          : "nodeType" in course && (course.nodeType === "informational" || course.nodeType === "unparsed_requirement")
+            ? "informationalNode"
+            : "courseNode",
       position: { x: 0, y: 0 },
       data: {
         ...course,
@@ -104,10 +105,12 @@ export function buildGraphNodesAndEdges(
         strokeWidth: isMembership ? 1.5 : 2,
         strokeDasharray: isMembership ? "2,4" : isCoreq ? "5,5" : isRec ? "2,2" : undefined,
       },
-      markerEnd: isMembership ? undefined : {
-        type: MarkerType.ArrowClosed,
-        color: isCoreq ? "#2c6cf0" : isRec ? "#d97706" : "#747683",
-      },
+      markerEnd: isMembership
+        ? undefined
+        : {
+            type: MarkerType.ArrowClosed,
+            color: isCoreq ? "#2c6cf0" : isRec ? "#d97706" : "#747683",
+          },
       // Relationship context remains in the stored edge data and drawer, but
       // labels make dense graphs difficult to read when rendered on paths.
       label: undefined,
@@ -118,11 +121,7 @@ export function buildGraphNodesAndEdges(
   return { nodes, edges };
 }
 
-export function applyDagreLayout(
-  nodes: Node[],
-  edges: Edge[],
-  direction: "TB" | "LR" = "TB"
-): Node[] {
+export function applyDagreLayout(nodes: Node[], edges: Edge[], direction: "TB" | "LR" = "TB"): Node[] {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
@@ -164,7 +163,10 @@ export function applyDagreLayout(
       return { ...node, position: { x: parent.position.x + 340, y: parent.position.y + (index % 3) * 125 } };
     }
     if (data.nodeType === "requirement_group") {
-      const course = layouted.find((candidate) => (candidate.data as unknown as CourseNodeData).groupCode === data.groupCode && candidate.id !== node.id);
+      const course = layouted.find(
+        (candidate) =>
+          (candidate.data as unknown as CourseNodeData).groupCode === data.groupCode && candidate.id !== node.id,
+      );
       if (course) return { ...node, position: { x: course.position.x, y: Math.max(0, course.position.y - 190) } };
     }
     return node;
@@ -174,7 +176,7 @@ export function applyDagreLayout(
 export function layoutDegreeGraph(
   nodesData: Array<CourseNodeData | DegreeGraphNodeData>,
   edgesData: PrerequisiteEdgeData[],
-  direction: "TB" | "LR" = "TB"
+  direction: "TB" | "LR" = "TB",
 ): { nodes: Node[]; edges: Edge[] } {
   const { nodes, edges } = buildGraphNodesAndEdges(nodesData, edgesData);
   const layoutEdges = edges.filter((edge) => edgesData.find((data) => data.id === edge.id)?.type === "prerequisite");

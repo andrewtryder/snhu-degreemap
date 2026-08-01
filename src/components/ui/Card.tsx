@@ -8,9 +8,7 @@ export interface CardProps {
 }
 
 export function Card({ children, className = "", hoverable = false, style }: CardProps) {
-  const hoverClass = hoverable
-    ? "transition-all duration-200 hover:border-primary hover:shadow-md"
-    : "";
+  const hoverClass = hoverable ? "transition-all duration-200 hover:border-primary hover:shadow-md" : "";
 
   return (
     <div

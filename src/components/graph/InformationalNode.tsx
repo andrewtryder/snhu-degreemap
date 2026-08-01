@@ -16,7 +16,11 @@ export const InformationalNode = memo(({ data }: NodeProps & { data: DegreeGraph
       </p>
       <p className="mt-1 text-xs leading-relaxed text-on-surface">{expanded ? text : compact}</p>
       {text.length > 170 && (
-        <button type="button" onClick={() => setExpanded(!expanded)} className="mt-2 text-xs font-semibold text-primary underline">
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="mt-2 text-xs font-semibold text-primary underline"
+        >
           {expanded ? "Hide details" : "View details"}
         </button>
       )}

@@ -7,37 +7,41 @@
 
 ## 1. Environment & Probing Parameters
 
-| Parameter | Tested Value / Default | Description |
-| :--- | :--- | :--- |
-| **KUALI_BASE_URL** | `https://snhu.kuali.co` | Kuali Catalog service host |
-| **KUALI_CATALOG_ID** | `6349a3f9164d00001c6c80da` | SNHU 2025–2026 Academic Catalog ID |
-| **Sample Program PID** | `V1S14E8tg` | Computer Science (BS) program PID |
-| **Sample Program PID** | `EJeCh74Ltl` | Accounting (BS) program PID |
-| **Last Verified Date** | `2026-07-31` | Automated probe script execution date |
+| Parameter              | Tested Value / Default     | Description                           |
+| :--------------------- | :------------------------- | :------------------------------------ |
+| **KUALI_BASE_URL**     | `https://snhu.kuali.co`    | Kuali Catalog service host            |
+| **KUALI_CATALOG_ID**   | `6349a3f9164d00001c6c80da` | SNHU 2025–2026 Academic Catalog ID    |
+| **Sample Program PID** | `V1S14E8tg`                | Computer Science (BS) program PID     |
+| **Sample Program PID** | `EJeCh74Ltl`               | Accounting (BS) program PID           |
+| **Last Verified Date** | `2026-07-31`               | Automated probe script execution date |
 
 ---
 
 ## 2. Tested Endpoint Specifications
 
 ### 2.1 Program List Endpoint
+
 - **URL Pattern**: `/api/v1/catalog/programs/{catalogId}?q={query}`
 - **HTTP Method**: `GET`
 - **Response Format**: `JSON Array` (236 records in active catalog)
 - **Primary Fields**: `pid`, `title`, `code`, `programType`, `catalogCategory`, `offering`, `dateStart`.
 
 ### 2.2 Program Detail Endpoint
+
 - **URL Pattern**: `/api/v1/catalog/program/{catalogId}/{pid}`
 - **HTTP Method**: `GET`
 - **Response Format**: `JSON Object`
 - **Primary Fields**: `pid`, `title`, `code`, `description`, `rulesRequirements` (HTML string), `specializations` (Array of concentration objects).
 
 ### 2.3 Course Catalog Search Endpoint
+
 - **URL Pattern**: `/api/v1/catalog/courses/{catalogId}?q={query}`
 - **HTTP Method**: `GET`
 - **Response Format**: `JSON Array` (844 records for prefix search)
 - **Primary Fields**: `pid`, `code`, `title`, `subjectCode`, `academicLevel`.
 
 ### 2.4 Course Detail Endpoint
+
 - **URL Pattern**: `/api/v1/catalog/course/{catalogId}/{pid}`
 - **HTTP Method**: `GET`
 - **Response Format**: `JSON Object`
@@ -48,7 +52,9 @@
 ## 3. Payload Structure & Parsing Strategy
 
 ### `rulesRequirements` HTML Formatting
+
 Kuali publishes program requirements as embedded HTML containing semantic section tags:
+
 - `<section>`: Demarcates a Requirement Group (e.g. "General Education Courses", "Major Courses", "Free Electives").
 - `<h2 data-testid="grouping-label">`: Requirement group header text.
 - `<span>42</span><span>Total Credits</span>`: Group total credit target.
@@ -57,6 +63,7 @@ Kuali publishes program requirements as embedded HTML containing semantic sectio
 > Kuali's requirement-link identifier is the course record's internal `id`, despite the route name. The course-detail endpoint requires the separate public `pid`; synchronization first builds an `id` → `pid` index from `/courses/{catalogId}?q=` before fetching details.
 
 ### Parser Resiliency & Fallback Behavior
+
 - **Course-code canonicalization**: Course references are normalized to uppercase `SUBJ NNN` display form and a punctuation-free comparison key, so `ACC-201`, `ACC 201`, and `ACC201` resolve to the same course.
 - **Rule Type Mapping**:
   - `Complete all of the following` -> `all_of`
@@ -89,11 +96,13 @@ Kuali publishes program requirements as embedded HTML containing semantic sectio
 ## 5. How to Refresh Committed Test Fixtures
 
 Run the automated probe script:
+
 ```bash
 npx tsx scripts/probe-kuali-programs.ts --pid V1S14E8tg
 ```
 
 Then refresh the committed test fixtures:
+
 ```bash
 node -e '
   const fs = require("fs");

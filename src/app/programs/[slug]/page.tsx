@@ -32,7 +32,9 @@ export function hasActionableRequirements(items: RequirementItem[]): boolean {
   });
 }
 
-export function getRequirementInstruction(group: Pick<RequirementGroup, "ruleType" | "minimumSelections" | "minimumCredits" | "items">): string | null {
+export function getRequirementInstruction(
+  group: Pick<RequirementGroup, "ruleType" | "minimumSelections" | "minimumCredits" | "items">,
+): string | null {
   const actionable = hasActionableRequirements(group.items);
 
   switch (group.ruleType) {
@@ -62,9 +64,7 @@ export function RequirementTreeItems({ items, depth = 0 }: { items: RequirementI
             <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
               <div>
                 <span className="font-bold text-on-surface">{item.title}</span>
-                {item.description && (
-                  <p className="mt-0.5 text-[11px] text-on-surface-variant">{item.description}</p>
-                )}
+                {item.description && <p className="mt-0.5 text-[11px] text-on-surface-variant">{item.description}</p>}
                 {isGroup && item.sourceText && (
                   <details className="mt-2 text-[11px] text-on-surface-variant">
                     <summary className="cursor-pointer font-semibold">Complete catalog rule text</summary>
@@ -88,11 +88,7 @@ export async function generateStaticParams() {
   return [];
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const program = await getProgramBySlug(resolvedParams.slug);
 
@@ -151,34 +147,34 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
       {
         "@type": "WebSite",
         "@id": `${baseUrl}/#website`,
-        "url": baseUrl,
-        "name": "SNHU Degree Map",
-        "description": "Unofficial degree requirement and course prerequisite visualization tool",
+        url: baseUrl,
+        name: "SNHU Degree Map",
+        description: "Unofficial degree requirement and course prerequisite visualization tool",
       },
       {
         "@type": "WebPage",
         "@id": `${baseUrl}/programs/${program.slug}#webpage`,
-        "url": `${baseUrl}/programs/${program.slug}`,
-        "name": `${program.title} Degree Map`,
-        "description": program.description,
-        "isPartOf": { "@id": `${baseUrl}/#website` },
+        url: `${baseUrl}/programs/${program.slug}`,
+        name: `${program.title} Degree Map`,
+        description: program.description,
+        isPartOf: { "@id": `${baseUrl}/#website` },
       },
       {
         "@type": "BreadcrumbList",
-        "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": "Home", "item": baseUrl },
-          { "@type": "ListItem", "position": 2, "name": "Programs", "item": `${baseUrl}/programs` },
-          { "@type": "ListItem", "position": 3, "name": program.title, "item": `${baseUrl}/programs/${program.slug}` },
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: baseUrl },
+          { "@type": "ListItem", position: 2, name: "Programs", item: `${baseUrl}/programs` },
+          { "@type": "ListItem", position: 3, name: program.title, item: `${baseUrl}/programs/${program.slug}` },
         ],
       },
       {
         "@type": "EducationalOccupationalProgram",
-        "name": program.title,
-        "educationalCredentialAwarded": program.credential,
-        "provider": {
+        name: program.title,
+        educationalCredentialAwarded: program.credential,
+        provider: {
           "@type": "EducationalOrganization",
-          "name": "Southern New Hampshire University (Referenced Source)",
-          "sameAs": "https://www.snhu.edu",
+          name: "Southern New Hampshire University (Referenced Source)",
+          sameAs: "https://www.snhu.edu",
         },
       },
     ],
@@ -187,10 +183,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
   return (
     <div className="mx-auto w-full max-w-[var(--spacing-container-max)] px-4 py-8 md:px-8 space-y-6">
       {/* JSON-LD Script */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-2 text-xs text-on-surface-variant">
@@ -219,9 +212,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
             <h1 className="font-[family-name:var(--font-headline)] text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
               {program.title}
             </h1>
-            <p className="text-sm font-semibold text-on-surface">
-              {program.credential}
-            </p>
+            <p className="text-sm font-semibold text-on-surface">{program.credential}</p>
           </div>
 
           <a
@@ -235,10 +226,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
           </a>
         </div>
 
-        <p className="text-xs sm:text-sm leading-relaxed text-on-surface-variant max-w-4xl">
-          {program.description}
-        </p>
-
+        <p className="text-xs sm:text-sm leading-relaxed text-on-surface-variant max-w-4xl">{program.description}</p>
       </div>
 
       {/* Program Transfer Opportunities Summary Card (snhu-transfers integration) */}
@@ -254,7 +242,8 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
                     Transfer Integration
                   </Badge>
                   <span className="text-xs font-bold text-emerald-900">
-                    {transferInsights.transferableCoursesCount} of {transferInsights.totalCourses} Required Courses Have Known Transfer Equivalencies ({transferInsights.coveragePercentage}%)
+                    {transferInsights.transferableCoursesCount} of {transferInsights.totalCourses} Required Courses Have
+                    Known Transfer Equivalencies ({transferInsights.coveragePercentage}%)
                   </span>
                 </div>
               </div>
@@ -284,7 +273,9 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
             </div>
 
             <p className="text-[11px] text-emerald-800 leading-relaxed pt-1 border-t border-emerald-200">
-              <strong>Transfer Evaluation Disclaimer:</strong> Transfer equivalency data is snapshot from snhu-transfers. Listed options do not guarantee cost or time savings, and every transfer course requires official evaluation and approval by SNHU admissions and academic advising.
+              <strong>Transfer Evaluation Disclaimer:</strong> Transfer equivalency data is snapshot from
+              snhu-transfers. Listed options do not guarantee cost or time savings, and every transfer course requires
+              official evaluation and approval by SNHU admissions and academic advising.
             </p>
           </Card>
         );
@@ -338,9 +329,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
             <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
               <GitBranchIcon className="h-4 w-4 text-primary" /> Longest Prerequisite Chain
             </h3>
-            <p className="text-xs font-mono font-semibold text-primary">
-              {longestPath.join(" → ")}
-            </p>
+            <p className="text-xs font-mono font-semibold text-primary">{longestPath.join(" → ")}</p>
             <p className="text-[11px] text-on-surface-variant">
               Longest known prerequisite chain: {longestPathLength} courses
             </p>
@@ -354,7 +343,8 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
               <AlertTriangleIcon className="h-4 w-4 text-amber-700" /> Prerequisite Cycle Detected
             </h3>
             <p className="text-xs text-amber-800">
-              Source requirements contain a circular prerequisite relationship involving: {cycleNodes?.join(", ")}. Verify sequencing with an SNHU advisor.
+              Source requirements contain a circular prerequisite relationship involving: {cycleNodes?.join(", ")}.
+              Verify sequencing with an SNHU advisor.
             </p>
           </Card>
         )}
@@ -363,9 +353,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
       {/* Accessible Requirements Section */}
       <section className="space-y-6 pt-6 border-t border-surface-variant">
         <div>
-          <h2 className="text-xl font-bold text-on-surface">
-            Program Requirement Groups & Course Listing
-          </h2>
+          <h2 className="text-xl font-bold text-on-surface">Program Requirement Groups & Course Listing</h2>
           <p className="text-xs text-on-surface-variant">
             Structured text outline of requirement categories, credit thresholds, and course listings.
           </p>
@@ -377,25 +365,17 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-variant pb-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={getGroupCategoryVariant(group.category)}>
-                      {group.title}
-                    </Badge>
+                    <Badge variant={getGroupCategoryVariant(group.category)}>{group.title}</Badge>
                     <span className="text-xs font-semibold text-on-surface-variant">
                       {group.totalCredits == null ? "Credits not specified" : `${group.totalCredits} Total Credits`}
                     </span>
                   </div>
-                  {group.description && (
-                    <p className="mt-1 text-xs text-on-surface-variant">
-                      {group.description}
-                    </p>
-                  )}
+                  {group.description && <p className="mt-1 text-xs text-on-surface-variant">{group.description}</p>}
                 </div>
               </div>
 
               {getRequirementInstruction(group) && (
-                <p className="text-xs font-semibold text-on-surface-variant">
-                  {getRequirementInstruction(group)}
-                </p>
+                <p className="text-xs font-semibold text-on-surface-variant">{getRequirementInstruction(group)}</p>
               )}
 
               {group.sourceText && (
@@ -436,12 +416,8 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
       {/* About Section */}
       <section className="pt-6 border-t border-surface-variant space-y-4">
         <Card className="space-y-3">
-          <h2 className="text-base font-bold text-on-surface">
-            About the {program.title} Degree Program
-          </h2>
-          <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
-            {program.description}
-          </p>
+          <h2 className="text-base font-bold text-on-surface">About the {program.title} Degree Program</h2>
+          <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">{program.description}</p>
 
           {program.careerPaths && (
             <div>
@@ -463,11 +439,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
   );
 }
 
-export default async function ProgramDetailPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function ProgramDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
   const lastUpdated = await getCatalogLastUpdated();
 

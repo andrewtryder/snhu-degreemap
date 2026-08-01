@@ -1,7 +1,7 @@
-'use client'; // Error components must be Client Components
+"use client"; // Error components must be Client Components
 
-import { useEffect } from 'react'
-import { Honeybadger } from '@honeybadger-io/react'
+import { useEffect } from "react";
+import { Honeybadger } from "@honeybadger-io/react";
 
 /**
  * error.[js|tsx]: https://nextjs.org/docs/app/building-your-application/routing/error-handling
@@ -13,16 +13,10 @@ import { Honeybadger } from '@honeybadger-io/react'
  *  - on the client, when a React lifecycle method (render, componentDidMount, etc) throws or rejects
  *      and was caught by the built-in Next.js error boundary
  */
-export default function Error({
-  error,
-  reset,
-}: {
-    error: Error;
-    reset: () => void;
-}) {
+export default function Error({ error, reset }: { error: Error; reset: () => void }) {
   useEffect(() => {
-    Honeybadger.notify(error)
-  }, [error])
+    Honeybadger.notify(error);
+  }, [error]);
 
   return (
     <html lang="en">
@@ -35,10 +29,10 @@ export default function Error({
               () => reset()
             }
           >
-                    Try again
+            Try again
           </button>
         </div>
       </body>
     </html>
-  )
+  );
 }
