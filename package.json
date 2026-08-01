@@ -23,7 +23,7 @@
     "@neondatabase/serverless": "^1.1.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@types/dagre": "^0.7.52",
     "@types/dotenv": "^8.2.3",
