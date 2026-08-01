@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { POST } from "@/app/api/revalidate/route";
+import { dynamic, POST } from "@/app/api/revalidate/route";
 
 vi.mock("next/cache", () => ({
   revalidateTag: vi.fn(),
@@ -11,6 +11,10 @@ describe("POST /api/revalidate Endpoint", () => {
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
+  });
+
+  it("runs dynamically so the deployed secret is read at request time", () => {
+    expect(dynamic).toBe("force-dynamic");
   });
 
   it("fails 500 when REVALIDATE_SECRET is missing from environment", async () => {

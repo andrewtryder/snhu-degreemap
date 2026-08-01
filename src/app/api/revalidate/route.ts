@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 
+// This endpoint must read its secret at request time. Inlining it during a
+// build can leave a newly deployed function comparing against a stale value.
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
-  const secret = process.env.REVALIDATE_SECRET;
+  const secret = process.env["REVALIDATE_SECRET"];
 
   if (!secret) {
     return NextResponse.json(
