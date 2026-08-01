@@ -77,13 +77,17 @@ export function getTransferSnapshotForCourse(courseCode: string): TransferCourse
   return defaultTransferSnapshot[normalized] || null;
 }
 
+/**
+ * Build a course-detail URL on snhu-courses.
+ * Verified production route: /course/[id] (e.g. /course/CS110).
+ */
 export function getCoursesUrlForCourse(courseCode: string): string | null {
   const baseUrl = process.env.NEXT_PUBLIC_COURSES_URL || "https://snhu-courses.vercel.app";
   if (!baseUrl.trim()) return null;
 
   const codeSlug = courseCodeToTransferPathSegment(courseCode);
   if (!codeSlug) return null;
-  return joinBaseAndPath(baseUrl, `/courses/${codeSlug}`);
+  return joinBaseAndPath(baseUrl, `/course/${codeSlug}`);
 }
 
 /**
