@@ -1,22 +1,54 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
 import { generateMetadata } from "@/app/programs/[slug]/page";
 
 describe("SEO, Metadata & Sitemap Generation", () => {
-  it("generates correct robots.txt rules", () => {
-    const r = robots();
-    expect(r.rules).toBeDefined();
-    expect(r.rules).toHaveProperty("allow");
-    expect(r.rules).toHaveProperty("disallow");
-    expect(r.sitemap).toContain("/sitemap.xml");
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    process.env = { ...originalEnv };
   });
 
-  it("generates sitemap entries for static and program routes", async () => {
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  it("generates production robots.txt rules", () => {
+    process.env.VERCEL_ENV = "production";
+    const r = robots();
+    expect(r.rules).toEqual({
+      userAgent: "*",
+      allow: "/",
+      disallow: "/api/",
+    });
+    expect(r.sitemap).toBe("https://snhu-degreemap.vercel.app/sitemap.xml");
+  });
+
+  it("disallows all crawling on non-production deployments", () => {
+    process.env.VERCEL_ENV = "preview";
+    const r = robots();
+    expect(r.rules).toEqual({
+      userAgent: "*",
+      disallow: "/",
+    });
+    expect(r.sitemap).toBeUndefined();
+  });
+
+  it("generates sitemap entries for static, program, and requirements routes", async () => {
     const entries = await sitemap();
-    expect(entries.length).toBeGreaterThan(0);
-    expect(entries.some((e) => e.url.endsWith("/programs"))).toBe(true);
-    expect(entries.some((e) => e.url.endsWith("/programs/computer-science-bs"))).toBe(true);
+    const urls = entries.map((e) => e.url);
+
+    expect(urls).toContain("https://snhu-degreemap.vercel.app");
+    expect(urls).toContain("https://snhu-degreemap.vercel.app/programs");
+    expect(urls).toContain("https://snhu-degreemap.vercel.app/about");
+    expect(urls).toContain("https://snhu-degreemap.vercel.app/programs/computer-science-bs");
+    expect(urls).toContain("https://snhu-degreemap.vercel.app/programs/computer-science-bs/requirements");
+
+    expect(urls.some((u) => u.includes("/data-status"))).toBe(false);
+    expect(urls.some((u) => u.includes("/methodology"))).toBe(false);
+    expect(urls.some((u) => u.includes("/api/"))).toBe(false);
+    expect(urls.some((u) => u.includes("?level="))).toBe(false);
   });
 
   it("generates dynamic page metadata for program detail route", async () => {

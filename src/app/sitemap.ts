@@ -1,8 +1,9 @@
 import { MetadataRoute } from "next";
 import { getPrograms } from "@/lib/serverData";
+import { siteConfig } from "@/lib/site";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "https://snhu-degreemap.vercel.app";
+  const baseUrl = siteConfig.url.replace(/\/$/, "");
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
@@ -23,28 +24,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.5,
     },
-    {
-      url: `${baseUrl}/methodology`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/data-status`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.6,
-    },
   ];
 
   try {
     const programs = await getPrograms();
-    const programRoutes: MetadataRoute.Sitemap = programs.map((p) => ({
-      url: `${baseUrl}/programs/${p.slug}`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.8,
-    }));
+    const programRoutes: MetadataRoute.Sitemap = programs.flatMap((p) => [
+      {
+        url: `${baseUrl}/programs/${p.slug}`,
+        lastModified: new Date(),
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      },
+      {
+        url: `${baseUrl}/programs/${p.slug}/requirements`,
+        lastModified: new Date(),
+        changeFrequency: "weekly" as const,
+        priority: 0.75,
+      },
+    ]);
 
     return [...staticRoutes, ...programRoutes];
   } catch {
