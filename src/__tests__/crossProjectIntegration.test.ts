@@ -24,7 +24,7 @@ describe("Cross-Project Integration (snhu-courses & snhu-transfers)", () => {
   it("generates canonical snhu-courses URL for given course code", () => {
     process.env.NEXT_PUBLIC_COURSES_URL = "https://snhu-courses.vercel.app";
     const url = getCoursesUrlForCourse("CS 110");
-    expect(url).toBe("https://snhu-courses.vercel.app/courses/CS110");
+    expect(url).toBe("https://snhu-courses.vercel.app/course/CS110");
   });
 
   it("generates canonical snhu-transfers URL for course with snapshot data", () => {
@@ -45,7 +45,7 @@ describe("Cross-Project Integration (snhu-courses & snhu-transfers)", () => {
     const coursesUrl = getCoursesUrlForCourse("CS 110");
     const transfersUrl = getTransferUrlForCourse("CS 110");
 
-    expect(coursesUrl).toContain("/courses/CS110");
+    expect(coursesUrl).toContain("/course/CS110");
     expect(transfersUrl).toContain("/courses/CS110");
   });
 
