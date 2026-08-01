@@ -38,40 +38,88 @@ jobs:
       - run:
           name: Execute Program Catalog Synchronization
           command: |
-            set -euo pipefail
+            set -uo pipefail
             mkdir -p /tmp/sync-results
-            npm run program:sync | tee /tmp/sync-results/sync-output.log
+
+            set +e
+            npm run program:sync 2>&1 | tee /tmp/sync-results/sync-output.log
+            SYNC_EXIT=${PIPESTATUS[0]}
+            set -e
+
+            printf '%s\n' "$SYNC_EXIT" > /tmp/sync-results/sync-exit-code
             tail -n 1 /tmp/sync-results/sync-output.log \
               > /tmp/sync-results/sync-output.json
-            node -e '
-              const result = require("/tmp/sync-results/sync-output.json");
-              console.log(JSON.stringify(result, null, 2));
-            '
+
+            set +e
+            node scripts/validate-sync-result.mjs /tmp/sync-results/sync-output.json
+            VALIDATION_EXIT=$?
+            set -e
+
+            printf '%s\n' "$VALIDATION_EXIT" > /tmp/sync-results/validation-exit-code
+            exit 0
 
       - run:
           name: Trigger Vercel Cache Revalidation on Promotion
           command: |
-            SYNC_ACTION=$(node -e 'const r=require("/tmp/sync-results/sync-output.json"); console.log(r.action);')
+            set -euo pipefail
+            SYNC_EXIT=$(cat /tmp/sync-results/sync-exit-code)
+            VALIDATION_EXIT=$(cat /tmp/sync-results/validation-exit-code)
+
+            if [ "$SYNC_EXIT" -ne 0 ] || [ "$VALIDATION_EXIT" -ne 0 ]; then
+              echo "Skipping revalidation: synchronization result is not valid for promotion."
+              printf '0\n' > /tmp/sync-results/revalidation-exit-code
+              exit 0
+            fi
+
+            SYNC_ACTION=$(node -e 'const fs=require("fs"); console.log(JSON.parse(fs.readFileSync("/tmp/sync-results/sync-output.json", "utf8")).action);')
             echo "Sync Action Result: ${SYNC_ACTION}"
 
             if [ "${SYNC_ACTION}" = "promoted" ]; then
-              echo "Promotion detected! Triggering Vercel cache revalidation..."
-              if [ -n "${SITE_URL}" ] && [ -n "${REVALIDATE_SECRET}" ]; then
-                curl -X POST "${SITE_URL}/api/revalidate" \
-                  -H "Authorization: Bearer ${REVALIDATE_SECRET}" \
-                  -H "Content-Type: application/json" \
-                  --fail --silent --show-error
-                echo "Cache revalidation trigger succeeded!"
-              else
-                echo "Skipping revalidation: SITE_URL or REVALIDATE_SECRET not configured in CircleCI context."
-              fi
+              set +e
+              curl --fail --silent --show-error --request POST \
+                --header "X-Revalidate-Secret: ${REVALIDATE_SECRET}" \
+                "${SITE_URL}/api/revalidate" \
+                | tee /tmp/sync-results/revalidation-response.json
+              REVALIDATION_EXIT=${PIPESTATUS[0]}
+              set -e
             else
               echo "Skipping revalidation: Sync action was '${SYNC_ACTION}'."
+              REVALIDATION_EXIT=0
             fi
+
+            printf '%s\n' "$REVALIDATION_EXIT" > /tmp/sync-results/revalidation-exit-code
 
       - store_artifacts:
           path: /tmp/sync-results
           destination: sync-results
+
+      - run:
+          name: Report Synchronization Result
+          command: |
+            set -euo pipefail
+            SYNC_EXIT=$(cat /tmp/sync-results/sync-exit-code)
+            VALIDATION_EXIT=$(cat /tmp/sync-results/validation-exit-code)
+
+            if [ "$SYNC_EXIT" -ne 0 ]; then
+              echo "Catalog synchronization failed; artifacts were preserved."
+              exit "$SYNC_EXIT"
+            fi
+
+            if [ "$VALIDATION_EXIT" -ne 0 ]; then
+              echo "Catalog synchronization result was invalid; artifacts were preserved."
+              exit "$VALIDATION_EXIT"
+            fi
+
+            SYNC_ACTION=$(node -e 'const fs=require("fs"); console.log(JSON.parse(fs.readFileSync("/tmp/sync-results/sync-output.json", "utf8")).action);')
+            if [ "$SYNC_ACTION" = "error" ]; then
+              echo "Catalog synchronization reported an error; artifacts were preserved."
+              exit 1
+            fi
+
+            if [ "$SYNC_ACTION" = "promoted" ] && [ "$(cat /tmp/sync-results/revalidation-exit-code)" -ne 0 ]; then
+              echo "Catalog promotion succeeded but cache revalidation failed; artifacts were preserved."
+              exit 1
+            fi
 
 workflows:
   catalog_sync_workflow:
