@@ -8,6 +8,7 @@ import {
   PrerequisiteEdgeData,
   RequirementGroup,
   RequirementItem,
+  RequirementRuleMetadata,
   GroupCategory,
   DegreeLevel,
 } from "@/types/program";
@@ -224,9 +225,11 @@ export const getProgramBySlug = cache(
               minimum_selections: number | null;
               maximum_selections: number | null;
               minimum_credits: number | null;
+              raw_excerpt: string | null;
+              rule_metadata: RequirementRuleMetadata | null;
             }>(
               `
-              SELECT id, parent_group_id, title, category, rule_type, minimum_selections, maximum_selections, minimum_credits
+              SELECT id, parent_group_id, title, category, rule_type, minimum_selections, maximum_selections, minimum_credits, raw_excerpt, rule_metadata
               FROM program_requirement_groups
               WHERE program_id = $1
               ORDER BY sort_order ASC;
@@ -248,6 +251,8 @@ export const getProgramBySlug = cache(
                 minimum_selections: number | null;
                 maximum_selections: number | null;
                 minimum_credits: number | null;
+                raw_excerpt: string | null;
+                rule_metadata: RequirementRuleMetadata | null;
                 items: RequirementItem[];
               }
             >();
@@ -275,9 +280,9 @@ export const getProgramBySlug = cache(
                 [gRow.id]
               );
 
-              const textReqsRes = await client.query<{ text: string }>(
+              const textReqsRes = await client.query<{ text: string; source_path: string; is_unparsed: boolean }>(
                 `
-                SELECT text FROM program_text_requirements
+                SELECT text, source_path, is_unparsed FROM program_text_requirements
                 WHERE requirement_group_id = $1
                 ORDER BY sort_order ASC;
               `,
@@ -323,14 +328,21 @@ export const getProgramBySlug = cache(
               }
 
               for (const t of textReqsRes.rows) {
+                const textKind = t.is_unparsed
+                  ? "unparsed"
+                  : /\bpolicy\b|must meet|eligibility/i.test(t.text)
+                    ? "policy"
+                    : "informational";
                 items.push({
                   id: `txt_${items.length}`,
                   type: "single",
                   title: t.text,
                   credits: null,
-                  isUnparsed: true,
+                  isUnparsed: t.is_unparsed,
+                  sourceText: t.text,
+                  textKind,
                 });
-                unparsedNotes.push(t.text);
+                if (t.is_unparsed) unparsedNotes.push(t.text);
               }
 
               groupDataMap.set(gRow.id, {
@@ -342,6 +354,8 @@ export const getProgramBySlug = cache(
                 minimum_selections: gRow.minimum_selections,
                 maximum_selections: gRow.maximum_selections,
                 minimum_credits: gRow.minimum_credits,
+                raw_excerpt: gRow.raw_excerpt,
+                rule_metadata: gRow.rule_metadata,
                 items,
               });
             }
@@ -359,6 +373,8 @@ export const getProgramBySlug = cache(
                   minimumSelections: gData.minimum_selections,
                   maximumSelections: gData.maximum_selections,
                   minimumCredits: gData.minimum_credits,
+                  ruleMetadata: gData.rule_metadata || undefined,
+                  sourceText: gData.raw_excerpt || undefined,
                 });
               }
             }
@@ -391,6 +407,8 @@ export const getProgramBySlug = cache(
                   minimumSelections: gData.minimum_selections,
                   maximumSelections: gData.maximum_selections,
                   minimumCredits: gData.minimum_credits,
+                  ruleMetadata: gData.rule_metadata || undefined,
+                  sourceText: gData.raw_excerpt || undefined,
                   items: gData.items,
                   colorTheme: {
                     bg: palette.bg,

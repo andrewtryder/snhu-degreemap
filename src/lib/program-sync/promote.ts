@@ -167,8 +167,8 @@ export async function promoteStagingToLive(client: PoolClient, syncId: string): 
     `);
     
     await client.query(`
-      INSERT INTO program_requirement_groups (id, program_id, parent_group_id, source_path, title, category, rule_type, minimum_selections, maximum_selections, minimum_credits, sort_order, warning_count, raw_excerpt)
-      SELECT id, program_id, parent_group_id, source_path, title, category, rule_type, minimum_selections, maximum_selections, minimum_credits, sort_order, warning_count, raw_excerpt
+      INSERT INTO program_requirement_groups (id, program_id, parent_group_id, source_path, title, category, rule_type, minimum_selections, maximum_selections, minimum_credits, sort_order, warning_count, raw_excerpt, rule_metadata)
+      SELECT id, program_id, parent_group_id, source_path, title, category, rule_type, minimum_selections, maximum_selections, minimum_credits, sort_order, warning_count, raw_excerpt, rule_metadata
       FROM program_requirement_groups_stage;
     `);
     

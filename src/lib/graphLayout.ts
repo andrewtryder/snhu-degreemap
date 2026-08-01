@@ -1,9 +1,17 @@
 import dagre from "@dagrejs/dagre";
 import { MarkerType, type Edge, type Node } from "@xyflow/react";
 import { CourseNodeData, PrerequisiteEdgeData, GroupCategory } from "@/types/program";
+import { DegreeGraphNodeData } from "@/types/degreeGraph";
 
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 80;
+
+function nodeSize(node: DegreeGraphNodeData | CourseNodeData) {
+  const nodeType = "nodeType" in node ? node.nodeType : "course";
+  if (nodeType === "requirement_group") return { width: 300, height: 150 };
+  if (nodeType === "informational" || nodeType === "unparsed_requirement") return { width: 260, height: 110 };
+  return { width: NODE_WIDTH, height: NODE_HEIGHT };
+}
 
 export interface CategoryPalette {
   bg: string;
@@ -58,7 +66,7 @@ export const CATEGORY_PALETTES: Record<GroupCategory, CategoryPalette> = {
 };
 
 export function buildGraphNodesAndEdges(
-  nodesData: CourseNodeData[],
+  nodesData: Array<CourseNodeData | DegreeGraphNodeData>,
   edgesData: PrerequisiteEdgeData[]
 ): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = nodesData.map((course) => {
@@ -66,41 +74,44 @@ export function buildGraphNodesAndEdges(
 
     return {
       id: course.id,
-      type: "courseNode",
+      type: ("nodeType" in course && course.nodeType === "requirement_group")
+        ? "requirementRuleNode"
+        : ("nodeType" in course && (course.nodeType === "informational" || course.nodeType === "unparsed_requirement"))
+          ? "informationalNode"
+          : "courseNode",
       position: { x: 0, y: 0 },
       data: {
         ...course,
         palette,
       },
-      style: {
-        width: NODE_WIDTH,
-        height: NODE_HEIGHT,
-      },
+      style: nodeSize(course),
     };
   });
 
   const edges: Edge[] = edgesData.map((edge) => {
     const isCoreq = edge.type === "corequisite";
     const isRec = edge.type === "recommended";
+    const isMembership = edge.type === "requirement_membership";
 
     return {
       id: edge.id,
       source: edge.source,
       target: edge.target,
       type: "smoothstep",
-      animated: !isRec,
+      animated: !isRec && !isMembership,
       style: {
-        stroke: isCoreq ? "#2c6cf0" : isRec ? "#d97706" : "#747683",
-        strokeWidth: 2,
-        strokeDasharray: isCoreq ? "5,5" : isRec ? "2,2" : undefined,
+        stroke: isMembership ? "#9ca3af" : isCoreq ? "#2c6cf0" : isRec ? "#d97706" : "#747683",
+        strokeWidth: isMembership ? 1.5 : 2,
+        strokeDasharray: isMembership ? "2,4" : isCoreq ? "5,5" : isRec ? "2,2" : undefined,
       },
-      markerEnd: {
+      markerEnd: isMembership ? undefined : {
         type: MarkerType.ArrowClosed,
         color: isCoreq ? "#2c6cf0" : isRec ? "#d97706" : "#747683",
       },
       // Relationship context remains in the stored edge data and drawer, but
       // labels make dense graphs difficult to read when rendered on paths.
       label: undefined,
+      ariaLabel: isMembership ? "option within requirement" : undefined,
     };
   });
 
@@ -122,7 +133,8 @@ export function applyDagreLayout(
   });
 
   nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    const size = nodeSize(node.data as unknown as CourseNodeData);
+    dagreGraph.setNode(node.id, size);
   });
 
   edges.forEach((edge) => {
@@ -131,20 +143,36 @@ export function applyDagreLayout(
 
   dagre.layout(dagreGraph);
 
-  return nodes.map((node) => {
+  const layouted = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
+    const size = nodeSize(node.data as unknown as CourseNodeData);
     return {
       ...node,
       position: {
-        x: nodeWithPosition.x - NODE_WIDTH / 2,
-        y: nodeWithPosition.y - NODE_HEIGHT / 2,
+        x: nodeWithPosition.x - size.width / 2,
+        y: nodeWithPosition.y - size.height / 2,
       },
     };
+  });
+
+  const positioned = new Map(layouted.map((node) => [node.id, node]));
+  return layouted.map((node, index) => {
+    const data = node.data as unknown as DegreeGraphNodeData;
+    if (!data.parentRequirementId && data.nodeType !== "requirement_group") return node;
+    const parent = data.parentRequirementId ? positioned.get(data.parentRequirementId) : undefined;
+    if (parent) {
+      return { ...node, position: { x: parent.position.x + 340, y: parent.position.y + (index % 3) * 125 } };
+    }
+    if (data.nodeType === "requirement_group") {
+      const course = layouted.find((candidate) => (candidate.data as unknown as CourseNodeData).groupCode === data.groupCode && candidate.id !== node.id);
+      if (course) return { ...node, position: { x: course.position.x, y: Math.max(0, course.position.y - 190) } };
+    }
+    return node;
   });
 }
 
 export function layoutDegreeGraph(
-  nodesData: CourseNodeData[],
+  nodesData: Array<CourseNodeData | DegreeGraphNodeData>,
   edgesData: PrerequisiteEdgeData[],
   direction: "TB" | "LR" = "TB"
 ): { nodes: Node[]; edges: Edge[] } {

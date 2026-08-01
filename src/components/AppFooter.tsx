@@ -1,18 +1,21 @@
 import React from "react";
 import Link from "next/link";
 
-export function formatCatalogLastUpdated(lastUpdated: Date | null): string {
+export function formatCatalogLastUpdated(lastUpdated: Date | string | null): string {
   if (!lastUpdated) return "Last Updated: Not available";
+
+  const parsedDate = lastUpdated instanceof Date ? lastUpdated : new Date(lastUpdated);
+  if (Number.isNaN(parsedDate.getTime())) return "Last Updated: Not available";
 
   return `Last Updated: ${new Intl.DateTimeFormat("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
     timeZone: "UTC",
-  }).format(lastUpdated)}`;
+  }).format(parsedDate)}`;
 }
 
-export function AppFooter({ lastUpdated = null }: { lastUpdated?: Date | null }) {
+export function AppFooter({ lastUpdated = null }: { lastUpdated?: Date | string | null }) {
 
   return (
     <footer className="mt-16 border-t border-surface-variant bg-surface-container-lowest text-on-surface-variant">

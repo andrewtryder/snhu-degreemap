@@ -7,7 +7,7 @@ import {
   calculateLongestKnownPath,
   buildDegreeGraph,
 } from "@/lib/graphTransformer";
-import { CourseNodeData, PrerequisiteEdgeData } from "@/types/program";
+import { CourseNodeData, PrerequisiteEdgeData, RequirementGroup } from "@/types/program";
 
 describe("graphTransformer Analysis Engine", () => {
   const sampleNodes: CourseNodeData[] = [
@@ -83,5 +83,26 @@ describe("graphTransformer Analysis Engine", () => {
     expect(graph.insights.startingCourses).toEqual(["BUS 100"]);
     expect(graph.insights.longestPath).toEqual(["BUS 100"]);
     expect(graph.insights.totalKnownCourses).toBe(2);
+  });
+
+  it("adds membership edges for explicit options without changing prerequisite insights", () => {
+    const group: RequirementGroup = {
+      id: "graduate-options",
+      title: "Graduate options",
+      category: "elective",
+      totalCredits: 12,
+      ruleType: "choose_credits",
+      minimumCredits: 12,
+      ruleMetadata: { explicitCourseCodes: ["CS 210", "CS 300"], eligibleSubjectCodes: ["CS"], minimumCourseLevel: 200, maximumCourseLevel: 499 },
+      items: [],
+      colorTheme: { bg: "", border: "", text: "", badgeBg: "", badgeText: "" },
+    };
+    const graph = buildDegreeGraph(sampleNodes, sampleEdges, [group]);
+    const membership = graph.edges.filter((edge) => edge.type === "requirement_membership");
+
+    expect(graph.nodes.some((node) => node.nodeType === "requirement_group")).toBe(true);
+    expect(membership).toHaveLength(2);
+    expect(membership.every((edge) => edge.type !== "prerequisite")).toBe(true);
+    expect(graph.insights.longestPath).toEqual(["CS 110", "CS 210", "CS 300", "CS 499"]);
   });
 });

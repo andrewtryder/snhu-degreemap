@@ -261,6 +261,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
         <DegreeMapGraph
           nodesData={program.nodes}
           edgesData={program.edges}
+          requirementGroups={program.groups}
           programTitle={program.title}
           catalogYear={program.catalogYear}
           sourceName={program.sourceName}
@@ -364,6 +365,13 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
                 </p>
               )}
 
+              {group.sourceText && (
+                <details className="rounded-md bg-surface-container-low p-3 text-xs text-on-surface-variant">
+                  <summary className="cursor-pointer font-semibold text-on-surface">Complete catalog rule text</summary>
+                  <p className="mt-2 whitespace-pre-wrap leading-relaxed">{group.sourceText}</p>
+                </details>
+              )}
+
               <div className="space-y-2">
                 {group.items.length > 0 ? (
                   group.items.map((item) => (
@@ -377,6 +385,12 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
                           <p className="text-[11px] text-on-surface-variant mt-0.5">
                             {item.description}
                           </p>
+                        )}
+                        {item.type === "group" && item.sourceText && (
+                          <details className="mt-2 text-[11px] text-on-surface-variant">
+                            <summary className="cursor-pointer font-semibold">Complete catalog rule text</summary>
+                            <p className="mt-1 whitespace-pre-wrap leading-relaxed">{item.sourceText}</p>
+                          </details>
                         )}
                       </div>
                       <span className="font-mono font-semibold text-primary shrink-0">

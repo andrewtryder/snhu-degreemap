@@ -115,6 +115,28 @@ describe("kualiParser utility", () => {
     expect(refs[0]).toHaveProperty("code");
   });
 
+  it("preserves and structures subject-range rules, alternatives, policy notes, and non-course links", () => {
+    const html = `
+      <section><header><h2>Major Electives</h2></header><ul>
+        <li data-test="ruleView-A">Complete all of the following 12 credit(s) from CS, CYB, DAD, DAT, GAM, or IT within the 200–499 range or from the following courses:
+          <a href="#/courses/view/cs510">CS510</a> - Operating Systems
+          <a href="#/courses/view/cs530">CS530</a> - Artificial Intelligence
+          <a href="#/courses/view/cs550">CS550</a> - Networking
+          <a href="#/courses/view/cs590">CS590</a> - Database Design.
+          Students selecting a graduate-level course must meet the <a href="https://example.edu/policy">Undergraduates Taking Graduate Courses policy</a>.
+        </li>
+      </ul></section>`;
+    const rule = parseRequirementTree(html).groups[0].children[0];
+
+    expect(rule.minimumCredits).toBe(12);
+    expect(rule.ruleMetadata?.eligibleSubjectCodes).toEqual(["CS", "CYB", "DAD", "DAT", "GAM", "IT"]);
+    expect(rule.ruleMetadata?.minimumCourseLevel).toBe(200);
+    expect(rule.ruleMetadata?.maximumCourseLevel).toBe(499);
+    expect(rule.ruleMetadata?.explicitCourseCodes).toEqual(["CS 510", "CS 530", "CS 550", "CS 590"]);
+    expect(rule.rawText).toContain("Undergraduates Taking Graduate Courses policy");
+    expect(rule.ruleMetadata?.policyNotes?.join(" ")).toContain("must meet");
+  });
+
   it("handles malformed or non-object payloads gracefully with warnings", () => {
     expect(() => parseProgramListItem(null)).toThrow("Invalid Kuali program list item payload");
     expect(() => parseProgramDetail({})).toThrow("Invalid Kuali program detail payload");
