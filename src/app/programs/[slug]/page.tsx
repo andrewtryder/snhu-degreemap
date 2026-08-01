@@ -279,9 +279,17 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
       </div>
 
       <section className="space-y-6 pt-6 border-t border-surface-variant">
-        <div>
-          <h2 className="text-xl font-bold text-on-surface">Program Requirement Groups & Course Listing</h2>
-          <p className="text-xs text-on-surface-variant">Credit totals by degree requirement category.</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-on-surface">Program Requirement Groups & Course Listing</h2>
+            <p className="text-xs text-on-surface-variant">Credit totals by degree requirement category.</p>
+          </div>
+          <Link
+            href={`/programs/${program.slug}/requirements`}
+            className="inline-flex items-center rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface transition-colors hover:bg-surface-container hover:text-primary"
+          >
+            View full courses and requirements
+          </Link>
         </div>
 
         <div className="space-y-4">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Inter } from "next/font/google";
 import { siteConfig } from "@/lib/site";
+import { isIndexableDeployment } from "@/lib/deploymentEnv";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
@@ -14,6 +15,8 @@ const geist = Geist({
   variable: "--font-geist",
 });
 
+const allowIndexing = isIndexableDeployment();
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
@@ -21,10 +24,15 @@ export const metadata: Metadata = {
     template: "%s | SNHU Degree Map",
   },
   description: siteConfig.description,
-  robots: {
-    index: true,
-    follow: true,
-  },
+  robots: allowIndexing
+    ? {
+        index: true,
+        follow: true,
+      }
+    : {
+        index: false,
+        follow: false,
+      },
   alternates: {
     canonical: "/",
   },

@@ -37,6 +37,10 @@ describe("Computer Science Program Page", () => {
 
     expect(screen.getByText("Program Requirement Groups & Course Listing")).toBeInTheDocument();
     expect(screen.getByText("Credit totals by degree requirement category.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /View full courses and requirements/i })).toHaveAttribute(
+      "href",
+      "/programs/computer-science-bs/requirements",
+    );
     expect(screen.getAllByText("42 Total Credits").length).toBeGreaterThan(0);
     expect(screen.queryByText("Complete all of the following")).not.toBeInTheDocument();
     expect(screen.queryByText("Complete catalog rule text")).not.toBeInTheDocument();

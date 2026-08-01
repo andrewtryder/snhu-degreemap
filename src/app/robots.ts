@@ -1,13 +1,24 @@
 import { MetadataRoute } from "next";
+import { siteConfig } from "@/lib/site";
+import { isIndexableDeployment } from "@/lib/deploymentEnv";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "https://snhu-degreemap.vercel.app";
+  const baseUrl = siteConfig.url.replace(/\/$/, "");
+
+  if (!isIndexableDeployment()) {
+    return {
+      rules: {
+        userAgent: "*",
+        disallow: "/",
+      },
+    };
+  }
 
   return {
     rules: {
       userAgent: "*",
-      allow: ["/", "/programs", "/programs/*", "/about", "/methodology", "/data-status"],
-      disallow: ["/api/*"],
+      allow: "/",
+      disallow: "/api/",
     },
     sitemap: `${baseUrl}/sitemap.xml`,
   };

@@ -67,6 +67,29 @@ export const fixturePrograms: DegreeProgram[] = [
             type: "elective",
             description: "Distribution requirements across Humanities, Social Sciences, and Natural Sciences.",
           },
+          {
+            id: "cmat",
+            title: "Cornerstone Math (CMAT)",
+            credits: null,
+            type: "group",
+            subItems: [
+              {
+                id: "cmat_choice",
+                title: "Choose 1 of the following",
+                credits: null,
+                type: "group",
+                subItems: [
+                  {
+                    id: "mat241",
+                    title: "MAT 241: Modern Statistics",
+                    credits: 3,
+                    type: "choice",
+                    courses: ["MAT 241"],
+                  },
+                ],
+              },
+            ],
+          },
         ],
       },
       {
