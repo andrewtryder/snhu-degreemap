@@ -48,4 +48,15 @@ describe("CircleCI catalog synchronization configuration", () => {
     expect(config).not.toMatch(/vercel\s+cron/i);
     expect(config).not.toMatch(/CIRCLECI_(?:API|CLI)_TOKEN/);
   });
+
+  it("pins the TypeScript runner used by catalog jobs", () => {
+    const packageJson = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8")) as {
+      devDependencies?: Record<string, string>;
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.devDependencies?.tsx).toBeDefined();
+    expect(packageJson.scripts?.["db:migrate"]).toBe("tsx scripts/migrate.ts");
+    expect(packageJson.scripts?.["program:sync"]).toBe("tsx scripts/program-sync.ts");
+  });
 });
