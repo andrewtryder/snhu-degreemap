@@ -6,7 +6,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { AppFooter } from "@/components/AppFooter";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getCatalogLastUpdated, getProgramBySlug } from "@/lib/serverData";
+import { getCatalogLastUpdated, getProgramBySlug, toIsoDateString } from "@/lib/serverData";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { isIndexableDeployment } from "@/lib/deploymentEnv";
 import {
@@ -83,7 +83,7 @@ export async function ProgramRequirementsContent({ slug }: { slug: string }) {
   const programUrl = `${baseUrl}/programs/${program.slug}`;
   const programId = `${programUrl}#program`;
   const lastUpdated = await getCatalogLastUpdated();
-  const dateModified = lastUpdated ? lastUpdated.toISOString() : undefined;
+  const dateModified = toIsoDateString(lastUpdated);
 
   const programEntity: Record<string, unknown> = {
     "@type": "EducationalOccupationalProgram",

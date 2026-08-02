@@ -69,6 +69,18 @@ async function safeCache<T>(
   }
 }
 
+/** Rehydrate dates after `unstable_cache` JSON serialization (Dates become strings). */
+function asDate(value: Date | string | null | undefined): Date | null {
+  if (value == null) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function toIsoDateString(value: Date | string | null | undefined): string | undefined {
+  const date = asDate(value);
+  return date ? date.toISOString() : undefined;
+}
+
 export interface ProgramSummary {
   slug: string;
   title: string;
@@ -737,7 +749,7 @@ export const getSitemapPrograms = cache(async (): Promise<SitemapProgram[]> => {
         );
         return res.rows.map((row) => ({
           slug: row.slug,
-          updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
+          updatedAt: asDate(row.updatedAt),
         }));
       } finally {
         client.release();
@@ -745,6 +757,12 @@ export const getSitemapPrograms = cache(async (): Promise<SitemapProgram[]> => {
     },
     ["sitemap-programs"],
     { tags: ["program-data"] },
+  ).then((rows) =>
+    rows.map((row) => ({
+      slug: row.slug,
+      // Cache round-trips may stringify Date values.
+      updatedAt: asDate(row.updatedAt),
+    })),
   );
 });
 
@@ -856,7 +874,7 @@ export const getCatalogLastUpdated = cache(async (): Promise<Date | null> => {
   const pool = getDbPool();
   if (!pool) return null;
 
-  return safeCache(
+  const cached = await safeCache(
     async () => {
       try {
         const client = await pool.connect();
@@ -873,7 +891,7 @@ export const getCatalogLastUpdated = cache(async (): Promise<Date | null> => {
               (SELECT MAX(synced_at) FROM catalogs)
             ) AS last_updated;
           `);
-          return res.rows[0]?.last_updated ?? null;
+          return asDate(res.rows[0]?.last_updated ?? null);
         } finally {
           client.release();
         }
@@ -882,8 +900,11 @@ export const getCatalogLastUpdated = cache(async (): Promise<Date | null> => {
       }
     },
     ["catalog-last-updated"],
-    { tags: ["program-data"] }
+    { tags: ["program-data"] },
   );
+
+  // `unstable_cache` serializes Dates as strings; always rehydrate for callers.
+  return asDate(cached);
 });
 
 function filterFixtures(
