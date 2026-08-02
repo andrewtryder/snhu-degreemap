@@ -7,7 +7,12 @@ import { AppFooter } from "@/components/AppFooter";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { DynamicDegreeMapGraph } from "@/components/graph/DynamicDegreeMapGraph";
-import { getCatalogLastUpdated, getProgramBySlug, getRelatedPrograms } from "@/lib/serverData";
+import {
+  getCatalogLastUpdated,
+  getProgramBySlug,
+  getRelatedPrograms,
+  toIsoDateString,
+} from "@/lib/serverData";
 import { buildDegreeGraph } from "@/lib/graphTransformer";
 import { calculateProgramTransferInsights, getTransferUrlForCourse } from "@/lib/transferIntegration";
 import { getSiteUrl } from "@/lib/siteUrl";
@@ -97,7 +102,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
   const programUrl = `${baseUrl}/programs/${program.slug}`;
   const programId = `${programUrl}#program`;
   const relatedCategory = categoryLabelForRelated(getProgramLevelCategory(program));
-  const dateModified = lastUpdated ? lastUpdated.toISOString() : undefined;
+  const dateModified = toIsoDateString(lastUpdated);
 
   const programEntity: Record<string, unknown> = {
     "@type": "EducationalOccupationalProgram",
