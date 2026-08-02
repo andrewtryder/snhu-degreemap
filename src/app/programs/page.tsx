@@ -17,9 +17,20 @@ import { GraduationCapIcon, ArrowRightIcon } from "lucide-react";
 
 export const revalidate = false;
 
-export const metadata: Metadata = {
-  alternates: { canonical: "/programs" },
-};
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ level?: string }>;
+}): Promise<Metadata> {
+  // Keep filter UX, but always canonicalize filtered variants to /programs.
+  await searchParams;
+  return {
+    title: "Degree Programs Directory",
+    description:
+      "Browse unofficial SNHU degree requirements, major course maps, and prerequisite structures across active catalog years.",
+    alternates: { canonical: "/programs" },
+  };
+}
 
 export function filterProgramsByLevel(
   programs: DegreeProgram[],

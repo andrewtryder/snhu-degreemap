@@ -1,4 +1,3 @@
-import { toPng } from "html-to-image";
 import { getNodesBounds, getViewportForBounds, type Node } from "@xyflow/react";
 
 export interface RenderReactFlowToPngOptions {
@@ -92,6 +91,9 @@ export async function renderReactFlowToPng(
   // Prefer pixelRatio 2; fall back for very large outputs to stay within canvas limits.
   const area = imageWidth * imageHeight;
   const pixelRatio = area > 12_000_000 ? 1 : 2;
+
+  // Load html-to-image only when the user starts PNG generation.
+  const { toPng } = await import("html-to-image");
 
   const dataUrl = await toPng(viewport, {
     backgroundColor,

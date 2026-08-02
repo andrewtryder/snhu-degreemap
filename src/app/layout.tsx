@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Inter } from "next/font/google";
 import { siteConfig } from "@/lib/site";
+import { getSiteUrl } from "@/lib/siteUrl";
 import { isIndexableDeployment } from "@/lib/deploymentEnv";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
@@ -16,9 +17,10 @@ const geist = Geist({
 });
 
 const allowIndexing = isIndexableDeployment();
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
+  metadataBase: new URL(siteUrl),
   title: {
     default: "SNHU Degree Map",
     template: "%s | SNHU Degree Map",
@@ -45,7 +47,7 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "SNHU Degree Map",
     description: siteConfig.description,
   },

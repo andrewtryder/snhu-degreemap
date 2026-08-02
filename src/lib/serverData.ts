@@ -17,6 +17,7 @@ import { CATEGORY_PALETTES } from "@/lib/graphLayout";
 import { normalizeDegreeLevel } from "@/lib/kualiParser";
 import { getCourseCodeKey, getCourseNodeId, normalizeCourseCode } from "@/lib/courseCode";
 import { resolvePublicCatalogUrl } from "@/lib/snhuCatalog";
+import { rankRelatedPrograms, type RelatedProgramCandidate } from "@/lib/relatedPrograms";
 
 let poolInstance: Pool | null = null;
 
@@ -705,6 +706,150 @@ export const getProgramSyncState = cache(async () => {
     return null;
   }
 });
+
+export interface SitemapProgram {
+  slug: string;
+  updatedAt: Date | null;
+}
+
+/**
+ * Lean program list for sitemap generation. Does not load graphs or requirement trees.
+ * Throws when a database pool exists but the query fails so we never cache an empty success.
+ */
+export const getSitemapPrograms = cache(async (): Promise<SitemapProgram[]> => {
+  const pool = getDbPool();
+  if (!pool) {
+    if (!isFixturesEnabled()) return [];
+    return fixturePrograms.map((program) => ({ slug: program.slug, updatedAt: null }));
+  }
+
+  return safeCache(
+    async () => {
+      const client = await pool.connect();
+      try {
+        const res = await client.query<{ slug: string; updatedAt: Date | null }>(
+          `
+            SELECT slug, synced_at AS "updatedAt"
+            FROM programs
+            WHERE slug IS NOT NULL
+            ORDER BY slug ASC;
+          `,
+        );
+        return res.rows.map((row) => ({
+          slug: row.slug,
+          updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
+        }));
+      } finally {
+        client.release();
+      }
+    },
+    ["sitemap-programs"],
+    { tags: ["program-data"] },
+  );
+});
+
+export const getRelatedPrograms = cache(
+  async (slug: string, limit = 6): Promise<RelatedProgramCandidate[]> => {
+    const current = await getProgramBySlug(slug);
+    if (!current) return [];
+
+    const pool = getDbPool();
+    if (!pool) {
+      if (!isFixturesEnabled()) return [];
+      const candidates = fixturePrograms.map((program) => ({
+        slug: program.slug,
+        title: program.title,
+        credential: program.credential,
+        degreeLevel: program.degreeLevel,
+        sharedCourseCount: 0,
+      }));
+      return rankRelatedPrograms(current, candidates, limit);
+    }
+
+    return safeCache(
+      async () => {
+        const client = await pool.connect();
+        try {
+          const overlapRes = await client.query<{
+            slug: string;
+            title: string;
+            credential: string;
+            sharedCourseCount: string;
+          }>(
+            `
+              WITH current_courses AS (
+                SELECT DISTINCT upper(regexp_replace(prc.course_code, '\\s+', '', 'g')) AS code_key
+                FROM programs p
+                JOIN program_requirement_groups prg ON prg.program_id = p.id
+                JOIN program_requirement_courses prc ON prc.requirement_group_id = prg.id
+                WHERE p.slug = $1
+                  AND prc.course_code IS NOT NULL
+                  AND trim(prc.course_code) <> ''
+              )
+              SELECT
+                p.slug,
+                p.title,
+                p.credential,
+                COUNT(DISTINCT upper(regexp_replace(prc.course_code, '\\s+', '', 'g')))::text AS "sharedCourseCount"
+              FROM programs p
+              JOIN program_requirement_groups prg ON prg.program_id = p.id
+              JOIN program_requirement_courses prc ON prc.requirement_group_id = prg.id
+              JOIN current_courses cc
+                ON cc.code_key = upper(regexp_replace(prc.course_code, '\\s+', '', 'g'))
+              WHERE p.slug <> $1
+              GROUP BY p.slug, p.title, p.credential
+              ORDER BY COUNT(*) DESC, p.title ASC
+              LIMIT 40;
+            `,
+            [slug],
+          );
+
+          const candidates: RelatedProgramCandidate[] = overlapRes.rows.map((row) => ({
+            slug: row.slug,
+            title: row.title,
+            credential: row.credential,
+            degreeLevel: normalizeDegreeLevel(row.credential),
+            sharedCourseCount: parseInt(row.sharedCourseCount, 10) || 0,
+          }));
+
+          if (candidates.length < limit) {
+            const fallback = await client.query<{
+              slug: string;
+              title: string;
+              credential: string;
+            }>(
+              `
+                SELECT slug, title, credential
+                FROM programs
+                WHERE slug <> $1
+                ORDER BY title ASC
+                LIMIT 80;
+              `,
+              [slug],
+            );
+            const seen = new Set(candidates.map((c) => c.slug));
+            for (const row of fallback.rows) {
+              if (seen.has(row.slug)) continue;
+              candidates.push({
+                slug: row.slug,
+                title: row.title,
+                credential: row.credential,
+                degreeLevel: normalizeDegreeLevel(row.credential),
+                sharedCourseCount: 0,
+              });
+            }
+          }
+
+          return rankRelatedPrograms(current, candidates, limit);
+        } finally {
+          client.release();
+        }
+      },
+      ["related-programs", slug, String(limit)],
+      { tags: ["program-data"] },
+    );
+  },
+);
 
 /** The latest successful catalog refresh, used for public data freshness messaging. */
 export const getCatalogLastUpdated = cache(async (): Promise<Date | null> => {
