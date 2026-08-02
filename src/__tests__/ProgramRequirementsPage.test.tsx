@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { ProgramRequirementsContent } from "@/app/programs/[slug]/requirements/page";
 import { ProgramDetailContent } from "@/app/programs/[slug]/page";
@@ -8,6 +8,10 @@ vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
+}));
+
+vi.mock("@/components/graph/DynamicDegreeMapGraph", () => ({
+  DynamicDegreeMapGraph: () => <div data-testid="dynamic-degree-map">map</div>,
 }));
 
 describe("Program requirements page", () => {
@@ -20,15 +24,33 @@ describe("Program requirements page", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Requirement Groups", level: 2 })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Course Inventory", level: 2 })).toBeInTheDocument();
+    expect(
+      screen.getByText(/The Computer Science program contains \d+ identified courses across \d+ requirement categories/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/\d+ known course relationships/)).toBeInTheDocument();
 
     expect(screen.getByText("Cornerstone Math (CMAT)")).toBeInTheDocument();
     expect(screen.getByText("Choose 1 of the following")).toBeInTheDocument();
     expect(screen.getByText("MAT 241: Modern Statistics")).toBeInTheDocument();
 
-    expect(screen.getByRole("cell", { name: "Precalculus" })).toBeInTheDocument();
-    expect(screen.getByRole("rowheader", { name: /MAT 140/ })).toBeInTheDocument();
-    expect(screen.getByRole("rowheader", { name: /^IT 140/ })).toBeInTheDocument();
-    expect(screen.getByRole("cell", { name: /Introduction to Scripting/i })).toBeInTheDocument();
+    const inventory = screen.getByRole("table", {
+      name: /Courses in this degree program with known prerequisite links/i,
+    });
+    expect(within(inventory).getByRole("link", { name: "MAT 140" })).toHaveAttribute(
+      "href",
+      "https://snhu-courses.vercel.app/course/MAT140",
+    );
+    expect(within(inventory).getByRole("link", { name: "IT 140" })).toHaveAttribute(
+      "href",
+      "https://snhu-courses.vercel.app/course/IT140",
+    );
+    expect(within(inventory).getByText("Precalculus")).toBeInTheDocument();
+    expect(within(inventory).getByText("Introduction to Scripting")).toBeInTheDocument();
+    const cs210Header = within(inventory).getByRole("rowheader", { name: /CS 210/ });
+    const cs210Row = cs210Header.closest("tr");
+    expect(cs210Row).toBeTruthy();
+    expect(within(cs210Row!).getByText(/Intro to Software Development/)).toBeInTheDocument();
+    expect(within(cs210Row!).getByText(/IT 145/)).toBeInTheDocument();
 
     expect(screen.getByRole("link", { name: /Back to interactive degree map/i })).toHaveAttribute(
       "href",
@@ -36,7 +58,7 @@ describe("Program requirements page", () => {
     );
   }, 15000);
 
-  it("keeps nested course listings off the simplified program map page", async () => {
+  it("keeps nested requirement-tree listings off the simplified program map page", async () => {
     const element = await ProgramDetailContent({ slug: "computer-science-bs" });
     render(element);
 
