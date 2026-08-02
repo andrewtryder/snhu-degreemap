@@ -84,6 +84,8 @@ export async function ProgramRequirementsContent({ slug }: { slug: string }) {
   const programId = `${programUrl}#program`;
   const lastUpdated = await getCatalogLastUpdated();
   const dateModified = toIsoDateString(lastUpdated);
+  const resolvedCourseCount = program.nodes.filter((course) => !course.isPlaceholder).length;
+  const edgeCount = program.edges.length;
 
   const programEntity: Record<string, unknown> = {
     "@type": "EducationalOccupationalProgram",
@@ -177,6 +179,11 @@ export async function ProgramRequirementsContent({ slug }: { slug: string }) {
           </h1>
           <p className="text-sm font-semibold text-on-surface">{program.credential}</p>
           <p className="text-xs sm:text-sm leading-relaxed text-on-surface-variant max-w-4xl">{program.description}</p>
+          <p className="text-xs sm:text-sm leading-relaxed text-on-surface-variant max-w-4xl">
+            The {program.title} program contains {resolvedCourseCount} identified courses across{" "}
+            {program.groups.length} requirement categories. The prerequisite data currently includes{" "}
+            {edgeCount} known course relationships.
+          </p>
         </div>
 
         <Link

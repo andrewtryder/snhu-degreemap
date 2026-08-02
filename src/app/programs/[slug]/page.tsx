@@ -14,7 +14,12 @@ import {
   toIsoDateString,
 } from "@/lib/serverData";
 import { buildDegreeGraph } from "@/lib/graphTransformer";
-import { calculateProgramTransferInsights, getTransferUrlForCourse } from "@/lib/transferIntegration";
+import {
+  calculateProgramTransferInsights,
+  getCoursesUrlForCourse,
+  getTransferUrlForCourse,
+} from "@/lib/transferIntegration";
+import { buildCourseLookup, resolvePrerequisites } from "@/lib/coursePrerequisites";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { isIndexableDeployment } from "@/lib/deploymentEnv";
 import { getProgramLevelCategory } from "@/lib/programLevelCategories";
@@ -96,6 +101,22 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
     getCatalogLastUpdated(),
   ]);
   const { startingCourses, criticalCourses, longestPath, longestPathLength, hasCycle, cycleNodes } = graphData.insights;
+
+  const previewCodes = [
+    ...new Set([
+      ...startingCourses,
+      ...criticalCourses,
+      ...program.nodes.filter((course) => !course.isPlaceholder).map((course) => course.code),
+    ]),
+  ].slice(0, 12);
+
+  const coursesByCode = new Map(program.nodes.map((course) => [course.code, course]));
+  const previewCourses = previewCodes.flatMap((code) => {
+    const course = coursesByCode.get(code);
+    if (!course || course.isPlaceholder) return [];
+    return [course];
+  });
+  const coursesById = buildCourseLookup(program.nodes);
 
   const baseUrl = getSiteUrl();
   const transferInsights = calculateProgramTransferInsights(program);
@@ -253,6 +274,64 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
           </div>
         )}
       </Card>
+
+      {previewCourses.length > 0 && (
+        <section className="space-y-4" aria-labelledby="course-preview-heading">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 id="course-preview-heading" className="text-xl font-bold text-on-surface">
+                Courses in the {program.title} Program
+              </h2>
+              <p className="text-xs text-on-surface-variant">
+                Selected courses from the {program.catalogYear} degree requirements.
+              </p>
+            </div>
+            <Link
+              href={`/programs/${program.slug}/requirements#course-inventory-heading`}
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              View every course and requirement
+            </Link>
+          </div>
+
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {previewCourses.map((course) => {
+              const coursesUrl = getCoursesUrlForCourse(course.code);
+              const prereqs = resolvePrerequisites(course, coursesById);
+              return (
+                <li
+                  key={course.id}
+                  className="rounded-lg border border-surface-variant bg-surface-container-lowest p-3"
+                >
+                  <p className="font-mono text-sm font-bold text-primary">
+                    {coursesUrl ? (
+                      <a
+                        href={coursesUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      >
+                        {course.code}
+                      </a>
+                    ) : (
+                      course.code
+                    )}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-on-surface">{course.title}</p>
+                  <p className="mt-1 text-xs text-on-surface-variant">
+                    {course.credits == null ? "Credits not specified" : `${course.credits} credits`}
+                  </p>
+                  {prereqs.length > 0 ? (
+                    <p className="mt-2 text-xs text-on-surface-variant">
+                      Known prerequisites: {prereqs.map((p) => p.code).join(", ")}
+                    </p>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <div className="space-y-4">
         <DynamicDegreeMapGraph

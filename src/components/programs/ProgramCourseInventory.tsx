@@ -1,15 +1,10 @@
 import React from "react";
 import { CourseNodeData } from "@/types/program";
-
-function resolvePrerequisiteLabels(course: CourseNodeData, byId: Map<string, CourseNodeData>): string[] {
-  return (course.prerequisites || []).map((ref) => {
-    const match = byId.get(ref) || [...byId.values()].find((c) => c.code === ref || c.id === ref);
-    return match?.code || ref;
-  });
-}
+import { buildCourseLookup, resolvePrerequisites } from "@/lib/coursePrerequisites";
+import { getCoursesUrlForCourse } from "@/lib/transferIntegration";
 
 export function ProgramCourseInventory({ courses }: { courses: CourseNodeData[] }) {
-  const byId = new Map(courses.map((course) => [course.id, course]));
+  const byId = buildCourseLookup(courses);
   const listed = courses.filter((course) => !course.isPlaceholder);
 
   if (listed.length === 0) {
@@ -38,11 +33,23 @@ export function ProgramCourseInventory({ courses }: { courses: CourseNodeData[] 
         </thead>
         <tbody>
           {listed.map((course) => {
-            const prereqs = resolvePrerequisiteLabels(course, byId);
+            const prereqs = resolvePrerequisites(course, byId);
+            const coursesUrl = getCoursesUrlForCourse(course.code);
             return (
               <tr key={course.id} className="border-t border-surface-variant">
                 <th scope="row" className="px-3 py-2 font-mono font-semibold text-primary">
-                  {course.code}
+                  {coursesUrl ? (
+                    <a
+                      href={coursesUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      {course.code}
+                    </a>
+                  ) : (
+                    course.code
+                  )}
                   {course.isExternal ? (
                     <span className="ml-2 text-[11px] font-sans font-medium text-on-surface-variant">External</span>
                   ) : null}
@@ -52,7 +59,18 @@ export function ProgramCourseInventory({ courses }: { courses: CourseNodeData[] 
                   {course.credits == null ? "—" : course.credits}
                 </td>
                 <td className="px-3 py-2 text-on-surface-variant">
-                  {prereqs.length > 0 ? prereqs.join(", ") : "None listed"}
+                  {prereqs.length > 0 ? (
+                    <ul className="space-y-1">
+                      {prereqs.map((prerequisite) => (
+                        <li key={prerequisite.code}>
+                          <span className="font-mono">{prerequisite.code}</span>
+                          {prerequisite.title ? ` — ${prerequisite.title}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    "None listed"
+                  )}
                 </td>
               </tr>
             );

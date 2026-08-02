@@ -51,9 +51,21 @@ describe("Computer Science Program Page", () => {
     expect(screen.queryByText(/About the Computer Science Degree Program/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Potential Career Pathways")).not.toBeInTheDocument();
 
-    // Nested course listings removed from credit-summary cards
+    // Nested requirement-tree listings stay off the map page; representative course preview is SSR.
     expect(screen.queryByText("MAT 241: Modern Statistics")).not.toBeInTheDocument();
     expect(screen.queryByText("Course listings mapped in interactive degree graph.")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Courses in the Computer Science Program", level: 2 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /View every course and requirement/i })).toHaveAttribute(
+      "href",
+      "/programs/computer-science-bs/requirements#course-inventory-heading",
+    );
+    expect(screen.getByText("Introduction to Scripting")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "IT 140" })).toHaveAttribute(
+      "href",
+      "https://snhu-courses.vercel.app/course/IT140",
+    );
 
     // Graph loads through next/dynamic wrapper (client-only); assert mount point, not heavy canvas.
     expect(screen.getByTestId("dynamic-degree-map")).toBeInTheDocument();
