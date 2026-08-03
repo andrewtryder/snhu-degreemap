@@ -31,6 +31,7 @@ export type TransferCoverageResult =
 
 const MAX_BATCH_SIZE = 100;
 const FETCH_TIMEOUT_MS = 5_000;
+const DEFAULT_TRANSFERS_HOST = "snhu-transfers.vercel.app";
 
 function chunk<T>(items: T[], size: number): T[][] {
   if (items.length === 0) return [];
@@ -51,31 +52,124 @@ export function collectProgramCoverageCourseCodes(program: DegreeProgram): strin
   ];
 }
 
-function isTransferCoverageCourse(value: unknown): value is TransferCoverageCourse {
+export function getApprovedTransfersHostname(): string {
+  const configured = process.env.NEXT_PUBLIC_TRANSFERS_URL?.trim();
+  if (!configured) return DEFAULT_TRANSFERS_HOST;
+  try {
+    return new URL(configured).hostname.toLowerCase();
+  } catch {
+    return DEFAULT_TRANSFERS_HOST;
+  }
+}
+
+/** Parse a coverage timestamp; returns null for null/invalid values. */
+export function parseCoverageUpdatedAt(value: string | null): Date | null {
+  if (value == null) return null;
+  if (typeof value !== "string" || value.trim() === "") return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && Number.isFinite(value);
+}
+
+function isApprovedCourseUrl(courseUrl: unknown, approvedHost: string): boolean {
+  if (typeof courseUrl !== "string" || courseUrl.trim() === "") return false;
+  try {
+    const parsed = new URL(courseUrl);
+    return parsed.protocol === "https:" && parsed.hostname.toLowerCase() === approvedHost;
+  } catch {
+    return false;
+  }
+}
+
+function isTransferCoverageCourse(
+  value: unknown,
+  approvedHost: string,
+): value is TransferCoverageCourse {
   if (!value || typeof value !== "object") return false;
   const course = value as Record<string, unknown>;
-  if (typeof course.courseCode !== "string") return false;
+  if (typeof course.courseCode !== "string" || course.courseCode.trim() === "") return false;
   if (typeof course.displayCourseCode !== "string") return false;
   if (typeof course.hasTransferEquivalencies !== "boolean") return false;
-  if (typeof course.equivalencyCount !== "number") return false;
-  if (typeof course.providerCount !== "number") return false;
+  if (!isNonNegativeInteger(course.equivalencyCount)) return false;
+  if (!isNonNegativeInteger(course.providerCount)) return false;
   if (!Array.isArray(course.providers) || !course.providers.every((p) => typeof p === "string")) {
     return false;
   }
   if (course.providerCount !== course.providers.length) return false;
-  if (typeof course.courseUrl !== "string") return false;
+  if (!isApprovedCourseUrl(course.courseUrl, approvedHost)) return false;
   return true;
 }
 
+/**
+ * Strict structural check without batch membership (used by unit tests for shape).
+ * Prefer assertValidCoverageBatch for runtime acceptance.
+ */
 export function isTransferCoverageResponse(value: unknown): value is TransferCoverageResponse {
   if (!value || typeof value !== "object") return false;
   const body = value as Record<string, unknown>;
   if (body.schemaVersion !== 1) return false;
-  if (!(body.dataLastUpdatedAt === null || typeof body.dataLastUpdatedAt === "string")) return false;
-  if (typeof body.requestedCourseCount !== "number") return false;
-  if (typeof body.matchedCourseCount !== "number") return false;
+  if (body.dataLastUpdatedAt !== null) {
+    if (typeof body.dataLastUpdatedAt !== "string") return false;
+    if (!parseCoverageUpdatedAt(body.dataLastUpdatedAt)) return false;
+  }
+  if (!isNonNegativeInteger(body.requestedCourseCount)) return false;
+  if (!isNonNegativeInteger(body.matchedCourseCount)) return false;
   if (!Array.isArray(body.courses)) return false;
-  return body.courses.every(isTransferCoverageCourse);
+  const approvedHost = getApprovedTransfersHostname();
+  if (!body.courses.every((course) => isTransferCoverageCourse(course, approvedHost))) return false;
+  return true;
+}
+
+/**
+ * Validate a single API batch against the exact requested code list.
+ * Throws on any contract violation — callers map that to unavailable.
+ */
+export function assertValidCoverageBatch(
+  requestedCodes: string[],
+  body: unknown,
+): TransferCoverageResponse {
+  if (!isTransferCoverageResponse(body)) {
+    throw new Error("Transfer coverage returned an invalid contract");
+  }
+
+  if (body.requestedCourseCount !== requestedCodes.length) {
+    throw new Error("Transfer coverage requestedCourseCount mismatch");
+  }
+  if (body.courses.length !== requestedCodes.length) {
+    throw new Error("Transfer coverage courses length mismatch");
+  }
+
+  const requestedSet = new Set(requestedCodes);
+  if (requestedSet.size !== requestedCodes.length) {
+    throw new Error("Transfer coverage requested codes must be unique");
+  }
+
+  const seen = new Set<string>();
+  for (const course of body.courses) {
+    if (!requestedSet.has(course.courseCode)) {
+      throw new Error(`Transfer coverage included unrequested course ${course.courseCode}`);
+    }
+    if (seen.has(course.courseCode)) {
+      throw new Error(`Transfer coverage duplicated course ${course.courseCode}`);
+    }
+    seen.add(course.courseCode);
+  }
+
+  for (const code of requestedCodes) {
+    if (!seen.has(code)) {
+      throw new Error(`Transfer coverage omitted requested course ${code}`);
+    }
+  }
+
+  const matched = body.courses.filter((course) => course.hasTransferEquivalencies).length;
+  if (body.matchedCourseCount !== matched) {
+    throw new Error("Transfer coverage matchedCourseCount mismatch");
+  }
+
+  return body;
 }
 
 async function fetchCoverageBatch(courseCodes: string[]): Promise<TransferCoverageResponse> {
@@ -110,47 +204,37 @@ async function fetchCoverageBatch(courseCodes: string[]): Promise<TransferCovera
     throw new Error("Transfer coverage returned malformed JSON");
   }
 
-  if (!isTransferCoverageResponse(body)) {
-    throw new Error("Transfer coverage returned an invalid contract");
-  }
-
-  return body;
+  return assertValidCoverageBatch(courseCodes, body);
 }
 
 function mergeBatchResponses(
   requestedCodes: string[],
   batches: TransferCoverageResponse[],
 ): TransferCoverageResponse {
-  const requested = new Set(requestedCodes);
   const byCode = new Map<string, TransferCoverageCourse>();
-
   for (const batch of batches) {
     for (const course of batch.courses) {
-      if (!requested.has(course.courseCode)) continue;
-      if (!byCode.has(course.courseCode)) {
-        byCode.set(course.courseCode, course);
-      }
+      byCode.set(course.courseCode, course);
     }
   }
 
-  // Ensure every requested code appears (API normally returns unmatched explicitly).
+  const courses: TransferCoverageCourse[] = [];
   for (const code of requestedCodes) {
-    if (byCode.has(code)) continue;
-    byCode.set(code, {
-      courseCode: code,
-      displayCourseCode: code.replace(/^([A-Z]+)(\d+[A-Z]*)$/, "$1 $2"),
-      hasTransferEquivalencies: false,
-      equivalencyCount: 0,
-      providerCount: 0,
-      providers: [],
-      courseUrl: "",
-    });
+    const course = byCode.get(code);
+    if (!course) {
+      throw new Error(`Transfer coverage merge missing course ${code}`);
+    }
+    courses.push(course);
   }
 
-  const courses = requestedCodes.map((code) => byCode.get(code)!);
   const matchedCourseCount = courses.filter((c) => c.hasTransferEquivalencies).length;
   const dataLastUpdatedAt =
     batches.map((b) => b.dataLastUpdatedAt).find((value) => value != null) ?? null;
+
+  // Re-validate merged timestamp if present.
+  if (dataLastUpdatedAt != null && !parseCoverageUpdatedAt(dataLastUpdatedAt)) {
+    throw new Error("Transfer coverage merge has invalid dataLastUpdatedAt");
+  }
 
   return {
     schemaVersion: 1,
