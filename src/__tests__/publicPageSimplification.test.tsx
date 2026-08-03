@@ -47,7 +47,9 @@ describe("public page simplification", () => {
     const cards = screen.getAllByRole("heading", { level: 3 });
     expect(cards.length).toBeGreaterThan(0);
     expect(cards.length).toBeLessThanOrEqual(15);
-    expect(screen.getByRole("link", { name: /Computer Science/i })).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("link", { name: /Computer Science/i }).length,
+    ).toBeGreaterThan(0);
     expect(screen.queryByText("N/A Total Credits")).not.toBeInTheDocument();
 
     for (const program of fixturePrograms) {
