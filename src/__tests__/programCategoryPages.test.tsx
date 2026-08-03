@@ -81,14 +81,14 @@ describe("program category landing pages", () => {
 
   it("configures permanent redirects from legacy ?level= filters", () => {
     const configSource = readFileSync(join(process.cwd(), "next.config.js"), "utf8");
-    expect(configSource).toContain('value: "bachelor"');
     expect(configSource).toContain('destination: "/programs/bachelors"');
-    expect(configSource).toContain('value: "associate"');
-    expect(configSource).toContain('destination: "/programs/associate"');
-    expect(configSource).toContain('value: "graduate"');
-    expect(configSource).toContain('destination: "/programs/graduate"');
-    expect(configSource).toContain('value: "certificate"');
     expect(configSource).toContain('destination: "/programs/certificates"');
     expect(configSource).toContain("permanent: true");
+
+    const middlewareSource = readFileSync(join(process.cwd(), "src/middleware.ts"), "utf8");
+    expect(middlewareSource).toContain('pathname !== "/programs"');
+    expect(middlewareSource).toContain("getPathForCategory");
+    expect(middlewareSource).toContain("NextResponse.redirect");
+    expect(middlewareSource).toContain("308");
   });
 });
