@@ -85,10 +85,10 @@ describe("program category landing pages", () => {
     expect(configSource).toContain('destination: "/programs/certificates"');
     expect(configSource).toContain("permanent: true");
 
-    const middlewareSource = readFileSync(join(process.cwd(), "src/middleware.ts"), "utf8");
-    expect(middlewareSource).toContain('pathname !== "/programs"');
-    expect(middlewareSource).toContain("getPathForCategory");
-    expect(middlewareSource).toContain("NextResponse.redirect");
-    expect(middlewareSource).toContain("308");
+    const proxySource = readFileSync(join(process.cwd(), "src/proxy.ts"), "utf8");
+    expect(proxySource).toContain('pathname !== "/programs"');
+    expect(proxySource).toContain("getPathForCategory");
+    expect(proxySource).toContain("NextResponse.redirect");
+    expect(proxySource).toContain("308");
   });
 });

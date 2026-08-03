@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPathForCategory, parseProgramLevelFilter } from "@/lib/programLevelCategories";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (request.nextUrl.pathname !== "/programs") {
     return NextResponse.next();
   }

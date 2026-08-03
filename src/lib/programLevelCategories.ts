@@ -97,7 +97,7 @@ export function getProgramLevelCategory({ credential, degreeLevel }: ProgramLeve
   return "other";
 }
 
-export function parseProgramLevelFilter(value: string | undefined): ProgramLevelCategory | "all" {
+export function parseProgramLevelFilter(value: string | undefined): ProgramLevelPathCategory | "all" {
   return value === "associate" || value === "bachelor" || value === "graduate" || value === "certificate"
     ? value
     : "all";
