@@ -52,6 +52,18 @@ export default async function AboutPage() {
               <p>
                 Explore the <a className="font-semibold text-primary hover:underline" href="https://snhu-courses.vercel.app" target="_blank" rel="noreferrer">SNHU Course Prerequisites Tool</a> and the <a className="font-semibold text-primary hover:underline" href="https://snhu-transfers.vercel.app" target="_blank" rel="noreferrer">SNHU Transfer Equivalency List</a> for complementary planning information.
               </p>
+              <p>
+                This project is open source and the code may be found at{" "}
+                <a
+                  className="font-semibold text-primary hover:underline"
+                  href="https://github.com/andrewtryder/snhu-degreemap"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  github.com/andrewtryder/snhu-degreemap
+                </a>
+                .
+              </p>
             </section>
           </div>
         </div>

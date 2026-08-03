@@ -18,7 +18,7 @@ import {
   RequirementTreeItems,
 } from "@/components/programs/RequirementTree";
 import { ProgramCourseInventory } from "@/components/programs/ProgramCourseInventory";
-import { CalendarIcon, ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon } from "lucide-react";
 
 export const dynamicParams = true;
 export const revalidate = false;
@@ -172,9 +172,6 @@ export async function ProgramRequirementsContent({ slug }: { slug: string }) {
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{program.degreeLevel}</Badge>
-            <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-2.5 py-0.5 text-xs font-semibold text-on-surface-variant">
-              <CalendarIcon className="h-3 w-3" /> Catalog {program.catalogYear}
-            </span>
           </div>
           <h1 className="font-[family-name:var(--font-headline)] text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
             {buildProgramRequirementsTitle(program)}

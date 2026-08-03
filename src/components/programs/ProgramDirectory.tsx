@@ -51,9 +51,8 @@ function ProgramCardGrid({ programs }: { programs: DegreeProgram[] }) {
       {programs.map((program) => (
         <Card key={program.slug} hoverable className="flex flex-col justify-between space-y-4">
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
               <Badge variant="outline">{program.degreeLevel}</Badge>
-              <span className="text-[11px] font-semibold text-outline">{program.catalogYear}</span>
             </div>
 
             <div className="flex items-start gap-2.5">
