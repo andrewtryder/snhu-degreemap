@@ -26,8 +26,33 @@ describe("public page simplification", () => {
       "Catalog Year",
       "React Flow + Dagre",
       "Dual View Mode",
+      "Browse Degree Programs",
     ]) {
       expect(screen.queryByText(removedText)).not.toBeInTheDocument();
+    }
+  });
+
+  it("curates bachelor homepage cards from the popular list", async () => {
+    render(await HomePage());
+
+    expect(
+      screen.getByRole("heading", { name: "Popular Bachelor’s Programs", level: 2 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View all programs" })).toHaveAttribute("href", "/programs");
+    expect(screen.getByRole("link", { name: "Browse all bachelor’s programs" })).toHaveAttribute(
+      "href",
+      "/programs/bachelors",
+    );
+
+    const cards = screen.getAllByRole("heading", { level: 3 });
+    expect(cards.length).toBeGreaterThan(0);
+    expect(cards.length).toBeLessThanOrEqual(15);
+    expect(screen.getByRole("link", { name: /Computer Science/i })).toBeInTheDocument();
+    expect(screen.queryByText("N/A Total Credits")).not.toBeInTheDocument();
+
+    for (const program of fixturePrograms) {
+      if (getProgramLevelCategory(program) === "bachelor") continue;
+      expect(screen.queryByRole("heading", { name: program.title, level: 3 })).not.toBeInTheDocument();
     }
   });
 

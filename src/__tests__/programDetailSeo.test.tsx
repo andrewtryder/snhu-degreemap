@@ -18,7 +18,7 @@ vi.mock("@/components/programs/ProgramTransferCoverage", () => ({
 }));
 
 describe("program detail SEO content", () => {
-  it("includes enriched JSON-LD and related program links", async () => {
+  it("includes enriched JSON-LD without related-program UI", async () => {
     const element = await ProgramDetailContent({ slug: "computer-science-bs" });
     const { container } = render(element);
 
@@ -36,13 +36,6 @@ describe("program detail SEO content", () => {
     expect(program?.url).toContain("/programs/computer-science-bs");
 
     expect(await screen.findByTestId("dynamic-degree-map")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /Related .* Programs/i })).toBeInTheDocument();
-
-    const relatedLinks = screen.getAllByRole("link").filter((link) => {
-      const href = link.getAttribute("href") || "";
-      return href.startsWith("/programs/") && href !== "/programs/computer-science-bs";
-    });
-    expect(relatedLinks.length).toBeGreaterThan(0);
-    expect(relatedLinks.every((link) => link.getAttribute("href") !== "/programs/computer-science-bs")).toBe(true);
+    expect(screen.queryByRole("heading", { name: /Related .* Programs/i })).not.toBeInTheDocument();
   }, 15000);
 });

@@ -15,7 +15,7 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { CourseNodeData, PrerequisiteEdgeData, GroupCategory, RequirementGroup } from "@/types/program";
+import { CourseNodeData, PrerequisiteEdgeData, GroupCategory } from "@/types/program";
 import {
   layoutDegreeGraph,
   clampTargetWidth,
@@ -27,7 +27,6 @@ import { CustomCourseNode } from "./CustomCourseNode";
 import { RequirementRuleNode } from "./RequirementRuleNode";
 import { InformationalNode } from "./InformationalNode";
 import { SectionHeaderNode } from "./SectionHeaderNode";
-import { RequirementsSidePanel } from "./RequirementsSidePanel";
 import { DEGREE_MAP_CANVAS_HEIGHT_CLASS } from "./graphShell";
 import { Button } from "@/components/ui/Button";
 import {
@@ -56,16 +55,12 @@ const nodeTypes = {
   sectionHeaderNode: SectionHeaderNode,
 };
 
-const EMPTY_REQUIREMENT_GROUPS: RequirementGroup[] = [];
-
 export interface DegreeMapGraphProps {
   nodesData: CourseNodeData[];
   edgesData: PrerequisiteEdgeData[];
   programTitle: string;
   catalogYear?: string;
   sourceName?: string;
-  requirementGroups?: RequirementGroup[];
-  requirementsHref?: string;
   onToggleListView?: () => void;
   className?: string;
 }
@@ -76,17 +71,12 @@ function DegreeMapGraphInner({
   programTitle,
   catalogYear = "2025-2026",
   sourceName = "SNHU Academic Catalog",
-  requirementGroups = EMPTY_REQUIREMENT_GROUPS,
-  requirementsHref,
   onToggleListView,
   className = DEGREE_MAP_CANVAS_HEIGHT_CLASS,
 }: DegreeMapGraphProps) {
   const [selectedGroup, setSelectedGroup] = useState<GroupCategory | "all">("all");
   const [graphMode, setGraphMode] = useState<GraphLayoutMode>("dependencies");
   const [selectedCourse, setSelectedCourse] = useState<CourseNodeData | null>(null);
-  const [selectedRequirementId, setSelectedRequirementId] = useState<string | null>(null);
-  const [panelCollapsedDesktop, setPanelCollapsedDesktop] = useState(false);
-  const [panelCollapsedMobile, setPanelCollapsedMobile] = useState(true);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [highlightMode, setHighlightMode] = useState<"none" | "starting" | "critical">("none");
   const [isExporting, setIsExporting] = useState(false);
@@ -113,25 +103,15 @@ function DegreeMapGraphInner({
         groupFilter: selectedGroup,
         targetWidth,
         gridColumns,
-        selectedRequirementId,
-        requirementGroups,
         showPrerequisiteOverlays: true,
       }),
-    [
-      fullGraph,
-      graphMode,
-      selectedGroup,
-      targetWidth,
-      gridColumns,
-      selectedRequirementId,
-      requirementGroups,
-    ],
+    [fullGraph, graphMode, selectedGroup, targetWidth, gridColumns],
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(layoutResult.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(layoutResult.edges);
 
-  const layoutKey = `${graphMode}|${selectedGroup}|${targetWidth}|${gridColumns}|${selectedRequirementId ?? ""}`;
+  const layoutKey = `${graphMode}|${selectedGroup}|${targetWidth}|${gridColumns}`;
 
   useEffect(() => {
     const el = flowContainerRef.current;
@@ -457,27 +437,7 @@ function DegreeMapGraphInner({
             </div>
           </div>
         </section>
-
-        <RequirementsSidePanel
-          groups={requirementGroups}
-          selectedRequirementId={selectedRequirementId}
-          onSelectRequirement={setSelectedRequirementId}
-          collapsed={panelCollapsedDesktop}
-          onToggleCollapsed={() => setPanelCollapsedDesktop((value) => !value)}
-          variant="desktop"
-          requirementsHref={requirementsHref}
-        />
       </div>
-
-      <RequirementsSidePanel
-        groups={requirementGroups}
-        selectedRequirementId={selectedRequirementId}
-        onSelectRequirement={setSelectedRequirementId}
-        collapsed={panelCollapsedMobile}
-        onToggleCollapsed={() => setPanelCollapsedMobile((value) => !value)}
-        variant="mobile"
-        requirementsHref={requirementsHref}
-      />
 
       {selectedCourse ? (
         <CourseDetailDrawer
