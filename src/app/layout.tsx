@@ -9,11 +9,16 @@ import "./globals.css";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+  preload: true,
 });
 
+// Headline font: keep available but do not preload so body/LCP text wins the network.
 const geist = Geist({
   subsets: ["latin"],
   variable: "--font-geist",
+  display: "swap",
+  preload: false,
 });
 
 const allowIndexing = isIndexableDeployment();

@@ -7,7 +7,7 @@ export async function ProgramTransferCoverage({ program }: { program: DegreeProg
 
   if (result.status === "unavailable") {
     return (
-      <Card className="border-surface-variant space-y-2">
+      <Card className="min-h-[5.5rem] border-surface-variant space-y-2">
         <h2 className="text-sm font-bold text-on-surface">Transfer Integration</h2>
         <p className="text-xs text-on-surface-variant">
           Transfer-equivalency coverage is temporarily unavailable.
@@ -20,7 +20,7 @@ export async function ProgramTransferCoverage({ program }: { program: DegreeProg
   const updatedAt = parseCoverageUpdatedAt(result.data.dataLastUpdatedAt);
 
   return (
-    <Card className="border-emerald-200 bg-emerald-50/50 space-y-2">
+    <Card className="min-h-[5.5rem] border-emerald-200 bg-emerald-50/50 space-y-2">
       <h2 className="text-sm font-bold text-emerald-950">Transfer Integration</h2>
 
       <p className="text-xs text-emerald-900">

@@ -87,6 +87,9 @@ describe("Computer Science Program Page", () => {
 
     // Graph loads through next/dynamic wrapper (client-only); assert mount point, not heavy canvas.
     expect(screen.getByTestId("dynamic-degree-map")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Interactive Prerequisite Map", level: 2 }),
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText(/Search courses in degree map/i)).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/Search map/i)).not.toBeInTheDocument();
   }, 15000);

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { flushSync } from "react-dom";
+import dynamic from "next/dynamic";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -21,15 +23,12 @@ import {
   GraphLayoutMode,
 } from "@/lib/graphLayout";
 import { buildDegreeGraph } from "@/lib/graphTransformer";
-import { downloadGraphSvg } from "@/lib/exportGraph";
-import { renderReactFlowToPng } from "@/lib/renderReactFlowToPng";
 import { CustomCourseNode } from "./CustomCourseNode";
 import { RequirementRuleNode } from "./RequirementRuleNode";
 import { InformationalNode } from "./InformationalNode";
 import { SectionHeaderNode } from "./SectionHeaderNode";
-import { CourseDetailDrawer } from "./CourseDetailDrawer";
-import { GraphImagePreviewDialog } from "./GraphImagePreviewDialog";
 import { RequirementsSidePanel } from "./RequirementsSidePanel";
+import { DEGREE_MAP_CANVAS_HEIGHT_CLASS } from "./graphShell";
 import { Button } from "@/components/ui/Button";
 import {
   FilterIcon,
@@ -41,6 +40,14 @@ import {
   SparklesIcon,
   ZapIcon,
 } from "lucide-react";
+
+const CourseDetailDrawer = dynamic(
+  () => import("./CourseDetailDrawer").then((mod) => mod.CourseDetailDrawer),
+);
+
+const GraphImagePreviewDialog = dynamic(
+  () => import("./GraphImagePreviewDialog").then((mod) => mod.GraphImagePreviewDialog),
+);
 
 const nodeTypes = {
   courseNode: CustomCourseNode,
@@ -72,7 +79,7 @@ function DegreeMapGraphInner({
   requirementGroups = EMPTY_REQUIREMENT_GROUPS,
   requirementsHref,
   onToggleListView,
-  className = "h-[650px]",
+  className = DEGREE_MAP_CANVAS_HEIGHT_CLASS,
 }: DegreeMapGraphProps) {
   const [selectedGroup, setSelectedGroup] = useState<GroupCategory | "all">("all");
   const [graphMode, setGraphMode] = useState<GraphLayoutMode>("dependencies");
@@ -83,6 +90,7 @@ function DegreeMapGraphInner({
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [highlightMode, setHighlightMode] = useState<"none" | "starting" | "critical">("none");
   const [isExporting, setIsExporting] = useState(false);
+  const [renderAllForExport, setRenderAllForExport] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
   const [previewWidth, setPreviewWidth] = useState<number | undefined>();
@@ -184,7 +192,8 @@ function DegreeMapGraphInner({
     [nodesData],
   );
 
-  const handleExportSvg = () => {
+  const handleExportSvg = async () => {
+    const { downloadGraphSvg } = await import("@/lib/exportGraph");
     downloadGraphSvg({
       programTitle,
       catalogYear,
@@ -210,6 +219,16 @@ function DegreeMapGraphInner({
         throw new Error("Graph container is not ready for export.");
       }
 
+      // Mount offscreen nodes before html-to-image captures the full graph.
+      flushSync(() => {
+        setRenderAllForExport(true);
+      });
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+
+      // PNG capture (+ html-to-image) loads only when print/export is requested.
+      const { renderReactFlowToPng } = await import("@/lib/renderReactFlowToPng");
       const result = await renderReactFlowToPng({
         nodes: getNodes(),
         flowElement,
@@ -223,6 +242,7 @@ function DegreeMapGraphInner({
       console.error("Graph image export failed", err instanceof Error ? err.message : "unknown error");
       setPreviewError("Unable to render the degree map image. Try again or use SVG download.");
     } finally {
+      setRenderAllForExport(false);
       setIsExporting(false);
     }
   };
@@ -397,6 +417,8 @@ function DegreeMapGraphInner({
             nodeTypes={nodeTypes}
             onNodeClick={onNodeClick}
             nodesDraggable={false}
+            nodesConnectable={false}
+            onlyRenderVisibleElements={!renderAllForExport}
             fitView
             fitViewOptions={{ padding: 0.25 }}
             attributionPosition="bottom-right"
@@ -457,19 +479,27 @@ function DegreeMapGraphInner({
         requirementsHref={requirementsHref}
       />
 
-      <CourseDetailDrawer course={selectedCourse} onClose={() => setSelectedCourse(null)} allCourses={nodesData} />
+      {selectedCourse ? (
+        <CourseDetailDrawer
+          course={selectedCourse}
+          onClose={() => setSelectedCourse(null)}
+          allCourses={nodesData}
+        />
+      ) : null}
 
-      <GraphImagePreviewDialog
-        isOpen={previewOpen}
-        onClose={closePreview}
-        programTitle={programTitle}
-        catalogYear={catalogYear}
-        dataUrl={previewDataUrl}
-        width={previewWidth}
-        height={previewHeight}
-        isLoading={isExporting}
-        error={previewError}
-      />
+      {previewOpen ? (
+        <GraphImagePreviewDialog
+          isOpen={previewOpen}
+          onClose={closePreview}
+          programTitle={programTitle}
+          catalogYear={catalogYear}
+          dataUrl={previewDataUrl}
+          width={previewWidth}
+          height={previewHeight}
+          isLoading={isExporting}
+          error={previewError}
+        />
+      ) : null}
     </div>
   );
 }

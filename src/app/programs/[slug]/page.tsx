@@ -234,7 +234,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
 
       <Suspense
         fallback={
-          <Card className="border-surface-variant">
+          <Card className="min-h-[5.5rem] border-surface-variant" aria-busy="true">
             <p className="text-xs text-on-surface-variant">Loading transfer coverage…</p>
           </Card>
         }
@@ -300,7 +300,17 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
         </section>
       )}
 
-      <div className="space-y-4">
+      <section className="space-y-4" aria-labelledby="degree-map-heading">
+        <div>
+          <h2 id="degree-map-heading" className="text-xl font-bold text-on-surface">
+            Interactive Prerequisite Map
+          </h2>
+          <p className="text-xs text-on-surface-variant">
+            Explore known prerequisite links for {program.title}. The interactive canvas loads after
+            page content so headings and course details stay available immediately.
+          </p>
+        </div>
+
         <DynamicDegreeMapGraph
           nodesData={program.nodes}
           edgesData={program.edges}
@@ -366,7 +376,7 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
             </p>
           </Card>
         )}
-      </div>
+      </section>
 
       <section className="space-y-6 pt-6 border-t border-surface-variant">
         <div className="flex flex-wrap items-end justify-between gap-3">
