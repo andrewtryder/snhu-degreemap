@@ -68,17 +68,14 @@ describe("Computer Science Program Page", () => {
     expect(screen.queryByText(/About the Computer Science Degree Program/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Potential Career Pathways")).not.toBeInTheDocument();
 
-    // Nested requirement-tree listings stay off the map page; representative course preview is SSR.
+    // Nested requirement-tree listings and representative course preview stay off the map page.
     expect(screen.queryByText("MAT 241: Modern Statistics")).not.toBeInTheDocument();
     expect(screen.queryByText("Course listings mapped in interactive degree graph.")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Courses in the Computer Science Program", level: 2 }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Introduction to Scripting")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "IT 140" })).toHaveAttribute(
-      "href",
-      "https://snhu-courses.vercel.app/course/IT140",
-    );
+      screen.queryByRole("heading", { name: /Courses in the .* Program/i, level: 2 }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Introduction to Scripting")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "IT 140" })).not.toBeInTheDocument();
 
     // Graph loads through next/dynamic wrapper (client-only); assert mount point, not heavy canvas.
     expect(screen.getByTestId("dynamic-degree-map")).toBeInTheDocument();
