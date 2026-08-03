@@ -2,20 +2,10 @@ import { getProgramLevelCategory } from "@/lib/programLevelCategories";
 
 /** Editorial bachelor homepage cards (verified prod slugs; omit missing rather than invent). */
 export const POPULAR_BACHELOR_PROGRAM_SLUGS = [
-  "computer-science-bs",
-  "cybersecurity-bs",
   "business-administration-bs",
-  "psychology-ba",
-  "accounting-bs",
   "criminal-justice-bs",
-  "information-technologies-bs",
-  "data-analytics-bs",
-  "finance-bs",
-  "marketing-bs",
-  "healthcare-administration-bs",
-  "nursing-bsn-bachelor-of-science",
-  "communication-ba",
-  "political-science-ba",
+  "computer-science-bs",
+  "psychology-ba",
 ] as const;
 
 export type PopularBachelorProgramCandidate = {
@@ -51,7 +41,6 @@ export function resolvePopularBachelorPrograms<T extends PopularBachelorProgramC
       continue;
     }
     resolved.push(program);
-    if (resolved.length >= 15) break;
   }
 
   return resolved;

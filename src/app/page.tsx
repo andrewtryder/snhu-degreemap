@@ -157,7 +157,7 @@ export default async function HomePage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {popularBachelorPrograms.map((program) => (
                 <Card
                   key={program.slug}
@@ -197,12 +197,6 @@ export default async function HomePage() {
                 </Card>
               ))}
             </div>
-
-            <p className="text-xs text-on-surface-variant">
-              <Link href="/programs/bachelors" className="font-semibold text-primary hover:underline">
-                Browse all bachelor’s programs
-              </Link>
-            </p>
           </section>
         </div>
       </main>

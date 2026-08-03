@@ -39,14 +39,12 @@ describe("public page simplification", () => {
       screen.getByRole("heading", { name: "Popular Bachelor’s Programs", level: 2 }),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View all programs" })).toHaveAttribute("href", "/programs");
-    expect(screen.getByRole("link", { name: "Browse all bachelor’s programs" })).toHaveAttribute(
-      "href",
-      "/programs/bachelors",
-    );
+    expect(screen.queryByRole("link", { name: "Browse all bachelor’s programs" })).not.toBeInTheDocument();
 
-    const cards = screen.getAllByRole("heading", { level: 3 });
-    expect(cards.length).toBeGreaterThan(0);
-    expect(cards.length).toBeLessThanOrEqual(15);
+    expect(screen.getByRole("heading", { name: /Business Administration/i, level: 3 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Computer Science/i, level: 3 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Psychology/i, level: 3 })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Cybersecurity/i, level: 3 })).not.toBeInTheDocument();
     expect(
       screen.getAllByRole("link", { name: /Computer Science/i }).length,
     ).toBeGreaterThan(0);
