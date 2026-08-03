@@ -307,6 +307,8 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
           programTitle={program.title}
           catalogYear={program.catalogYear}
           sourceName={program.sourceName}
+          requirementGroups={program.groups}
+          requirementsHref={`/programs/${program.slug}/requirements`}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
