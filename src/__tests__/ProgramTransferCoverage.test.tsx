@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProgramTransferCoverage } from "@/components/programs/ProgramTransferCoverage";
 import { fixturePrograms } from "@/data/fixturePrograms";
@@ -37,7 +37,7 @@ describe("ProgramTransferCoverage UI", () => {
     getProgramTransferCoverage.mockReset();
   });
 
-  it("shows the first eight courses and discloses the remainder", async () => {
+  it("shows all matched transfer courses without a disclosure", async () => {
     const courses = Array.from({ length: 11 }, (_, index) => makeCourse(index));
     getProgramTransferCoverage.mockResolvedValue({
       status: "available",
@@ -57,48 +57,19 @@ describe("ProgramTransferCoverage UI", () => {
       screen.getByText("11 of 11 identified program courses have known transfer listings."),
     ).toBeInTheDocument();
     expect(screen.getByText("Courses with known transfer listings")).toBeInTheDocument();
+    expect(screen.queryByText(/Transfer data last updated/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Show \d+ more courses/)).not.toBeInTheDocument();
+    expect(document.querySelector("details")).toBeNull();
 
-    for (let index = 0; index < 8; index += 1) {
+    for (let index = 0; index < 11; index += 1) {
       expect(
         screen.getByRole("link", { name: `View transfer equivalencies for CS ${100 + index}` }),
       ).toBeInTheDocument();
     }
 
-    const details = screen.getByText("Show 3 more courses").closest("details");
-    expect(details).toBeTruthy();
-    const remaining = within(details!);
-    expect(
-      remaining.getByRole("link", { name: "View transfer equivalencies for CS 108" }),
-    ).toHaveAttribute("href", "https://snhu-transfers.vercel.app/courses/CS108");
-    expect(
-      remaining.getByRole("link", { name: "View transfer equivalencies for CS 109" }),
-    ).toBeInTheDocument();
-    expect(
-      remaining.getByRole("link", { name: "View transfer equivalencies for CS 110" }),
-    ).toBeInTheDocument();
-
     expect(screen.getAllByRole("link", { name: /View transfer equivalencies for CS / })).toHaveLength(11);
     expect(document.querySelector(".grid")).toBeTruthy();
     expect(document.querySelector(".rounded-full")).toBeNull();
-  });
-
-  it("does not render a disclosure when eight or fewer courses match", async () => {
-    const courses = Array.from({ length: 5 }, (_, index) => makeCourse(index));
-    getProgramTransferCoverage.mockResolvedValue({
-      status: "available",
-      data: {
-        schemaVersion: 1,
-        dataLastUpdatedAt: null,
-        requestedCourseCount: 5,
-        matchedCourseCount: 5,
-        courses,
-      },
-    } satisfies TransferCoverageResult);
-
-    render(await ProgramTransferCoverage({ program }));
-
-    expect(screen.queryByText(/Show \d+ more courses/)).not.toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /View transfer equivalencies for CS / })).toHaveLength(5);
   });
 
   it("shows a concise no-match message when coverage is available but empty", async () => {

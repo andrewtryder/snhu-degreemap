@@ -243,9 +243,6 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
             <h2 id="course-preview-heading" className="text-xl font-bold text-on-surface">
               Courses in the {program.title} Program
             </h2>
-            <p className="text-xs text-on-surface-variant">
-              Selected courses from the {program.catalogYear} degree requirements.
-            </p>
           </div>
 
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

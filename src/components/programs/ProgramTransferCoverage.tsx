@@ -2,11 +2,8 @@ import { DegreeProgram } from "@/types/program";
 import { Card } from "@/components/ui/Card";
 import {
   getProgramTransferCoverage,
-  parseCoverageUpdatedAt,
   type TransferCoverageCourse,
 } from "@/lib/transferCoverage.server";
-
-const VISIBLE_TRANSFER_COURSE_LIMIT = 8;
 
 const TRANSFER_COURSE_GRID_CLASS =
   "grid grid-cols-2 gap-1.5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6";
@@ -53,9 +50,6 @@ export async function ProgramTransferCoverage({ program }: { program: DegreeProg
   }
 
   const matched = result.data.courses.filter((course) => course.hasTransferEquivalencies);
-  const updatedAt = parseCoverageUpdatedAt(result.data.dataLastUpdatedAt);
-  const visibleCourses = matched.slice(0, VISIBLE_TRANSFER_COURSE_LIMIT);
-  const remainingCourses = matched.slice(VISIBLE_TRANSFER_COURSE_LIMIT);
 
   return (
     <Card className="min-h-[5.5rem] border-emerald-200 bg-emerald-50/50 space-y-2">
@@ -66,32 +60,12 @@ export async function ProgramTransferCoverage({ program }: { program: DegreeProg
         transfer listings.
       </p>
 
-      {updatedAt ? (
-        <p className="text-[11px] text-emerald-800">
-          Transfer data last updated{" "}
-          {new Intl.DateTimeFormat("en-US", {
-            dateStyle: "medium",
-            timeZone: "UTC",
-          }).format(updatedAt)}
-        </p>
-      ) : null}
-
       {matched.length > 0 ? (
         <div className="space-y-2 pt-1">
           <p className="text-[11px] font-medium text-emerald-800/80">
             Courses with known transfer listings
           </p>
-          <TransferCourseGrid courses={visibleCourses} />
-          {remainingCourses.length > 0 ? (
-            <details className="group">
-              <summary className="cursor-pointer text-xs font-semibold text-emerald-900 underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
-                Show {remainingCourses.length} more courses
-              </summary>
-              <div className="mt-2">
-                <TransferCourseGrid courses={remainingCourses} />
-              </div>
-            </details>
-          ) : null}
+          <TransferCourseGrid courses={matched} />
         </div>
       ) : (
         <p className="text-xs text-emerald-900">
