@@ -7,6 +7,7 @@ import BachelorsPage, { generateMetadata as bachelorsMetadata } from "@/app/prog
 import GraduatePage, { generateMetadata as graduateMetadata } from "@/app/programs/graduate/page";
 import CertificatesPage, { generateMetadata as certificatesMetadata } from "@/app/programs/certificates/page";
 import { filterProgramsByLevel, getCategoryByPath, getPathForCategory } from "@/lib/programLevelCategories";
+import { resolveProgramsRedirect } from "@/lib/programsUrlCanonical";
 import { fixturePrograms } from "@/data/fixturePrograms";
 
 vi.mock("next/navigation", () => ({
@@ -79,16 +80,25 @@ describe("program category landing pages", () => {
     expect(screen.getByRole("heading", { name: "Certificate Programs", level: 1 })).toBeInTheDocument();
   });
 
-  it("configures permanent redirects from legacy ?level= filters", () => {
+  it("configures permanent redirects from legacy singular category paths", () => {
     const configSource = readFileSync(join(process.cwd(), "next.config.js"), "utf8");
     expect(configSource).toContain('destination: "/programs/bachelors"');
     expect(configSource).toContain('destination: "/programs/certificates"');
     expect(configSource).toContain("permanent: true");
+  });
+
+  it("canonicalizes legacy ?level= and other query filters via redirect helper", () => {
+    expect(resolveProgramsRedirect("/programs", new URLSearchParams("level=bachelor"))).toBe(
+      "/programs/bachelors",
+    );
+    expect(resolveProgramsRedirect("/programs", new URLSearchParams("sort=name"))).toBe("/programs");
+    expect(resolveProgramsRedirect("/programs", new URLSearchParams("search=computer"))).toBe(
+      "/programs",
+    );
 
     const proxySource = readFileSync(join(process.cwd(), "src/proxy.ts"), "utf8");
-    expect(proxySource).toContain('pathname !== "/programs"');
-    expect(proxySource).toContain("getPathForCategory");
-    expect(proxySource).toContain("NextResponse.redirect");
+    expect(proxySource).toContain("resolveProgramsRedirect");
+    expect(proxySource).toContain("resolveCanonicalHostRedirect");
     expect(proxySource).toContain("308");
   });
 });

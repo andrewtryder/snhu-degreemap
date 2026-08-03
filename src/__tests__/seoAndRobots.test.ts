@@ -61,6 +61,9 @@ describe("SEO, Metadata & Sitemap Generation", () => {
     expect(urls.some((u) => u.includes("/methodology"))).toBe(false);
     expect(urls.some((u) => u.includes("/api/"))).toBe(false);
     expect(urls.some((u) => u.includes("?level="))).toBe(false);
+    expect(urls.some((u) => u.includes("?sort="))).toBe(false);
+    expect(urls.some((u) => u.includes("?search="))).toBe(false);
+    expect(urls.every((u) => !u.includes("?"))).toBe(true);
     expect(entries.every((e) => !(e.lastModified instanceof Date && Number.isNaN(e.lastModified.getTime())))).toBe(
       true,
     );
