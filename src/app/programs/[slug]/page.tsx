@@ -1,3 +1,18 @@
+import {
+  getCatalogLastUpdated,
+  getProgramBySlug,
+  toIsoDateString,
+} from "@/lib/serverData";
+import { buildDegreeGraph } from "@/lib/graphTransformer";
+import { getCoursesUrlForCourse } from "@/lib/transferIntegration";
+import { buildCourseLookup, resolvePrerequisites } from "@/lib/coursePrerequisites";
+import { getSiteUrl } from "@/lib/siteUrl";
+import { isIndexableDeployment } from "@/lib/deploymentEnv";
+import {
+  buildProgramMapDescription,
+  buildProgramMapTitle,
+} from "@/lib/programSeo";
+import { ProgramTransferCoverage } from "@/components/programs/ProgramTransferCoverage";
 import React, { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,24 +22,6 @@ import { AppFooter } from "@/components/AppFooter";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { DynamicDegreeMapGraph } from "@/components/graph/DynamicDegreeMapGraph";
-import {
-  getCatalogLastUpdated,
-  getProgramBySlug,
-  getRelatedPrograms,
-  toIsoDateString,
-} from "@/lib/serverData";
-import { buildDegreeGraph } from "@/lib/graphTransformer";
-import { getCoursesUrlForCourse } from "@/lib/transferIntegration";
-import { buildCourseLookup, resolvePrerequisites } from "@/lib/coursePrerequisites";
-import { getSiteUrl } from "@/lib/siteUrl";
-import { isIndexableDeployment } from "@/lib/deploymentEnv";
-import { getProgramLevelCategory } from "@/lib/programLevelCategories";
-import {
-  buildProgramMapDescription,
-  buildProgramMapTitle,
-  categoryLabelForRelated,
-} from "@/lib/programSeo";
-import { ProgramTransferCoverage } from "@/components/programs/ProgramTransferCoverage";
 import {
   CalendarIcon,
   ExternalLinkIcon,
@@ -92,9 +89,8 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
     notFound();
   }
 
-  const [graphData, relatedPrograms, lastUpdated] = await Promise.all([
+  const [graphData, lastUpdated] = await Promise.all([
     Promise.resolve(buildDegreeGraph(program.nodes, program.edges)),
-    getRelatedPrograms(slug),
     getCatalogLastUpdated(),
   ]);
   const { startingCourses, criticalCourses, longestPath, longestPathLength, hasCycle, cycleNodes } = graphData.insights;
@@ -120,7 +116,6 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
   const baseUrl = getSiteUrl();
   const programUrl = `${baseUrl}/programs/${program.slug}`;
   const programId = `${programUrl}#program`;
-  const relatedCategory = categoryLabelForRelated(getProgramLevelCategory(program));
   const dateModified = toIsoDateString(lastUpdated);
 
   const programEntity: Record<string, unknown> = {
@@ -244,21 +239,13 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
 
       {previewCourses.length > 0 && (
         <section className="space-y-4" aria-labelledby="course-preview-heading">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 id="course-preview-heading" className="text-xl font-bold text-on-surface">
-                Courses in the {program.title} Program
-              </h2>
-              <p className="text-xs text-on-surface-variant">
-                Selected courses from the {program.catalogYear} degree requirements.
-              </p>
-            </div>
-            <Link
-              href={`/programs/${program.slug}/requirements#course-inventory-heading`}
-              className="text-xs font-semibold text-primary hover:underline"
-            >
-              View every course and requirement
-            </Link>
+          <div>
+            <h2 id="course-preview-heading" className="text-xl font-bold text-on-surface">
+              Courses in the {program.title} Program
+            </h2>
+            <p className="text-xs text-on-surface-variant">
+              Selected courses from the {program.catalogYear} degree requirements.
+            </p>
           </div>
 
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -317,8 +304,6 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
           programTitle={program.title}
           catalogYear={program.catalogYear}
           sourceName={program.sourceName}
-          requirementGroups={program.groups}
-          requirementsHref={`/programs/${program.slug}/requirements`}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -379,17 +364,9 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
       </section>
 
       <section className="space-y-6 pt-6 border-t border-surface-variant">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-bold text-on-surface">Program Requirement Groups & Course Listing</h2>
-            <p className="text-xs text-on-surface-variant">Credit totals by degree requirement category.</p>
-          </div>
-          <Link
-            href={`/programs/${program.slug}/requirements`}
-            className="inline-flex items-center rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface transition-colors hover:bg-surface-container hover:text-primary"
-          >
-            View full courses and requirements
-          </Link>
+        <div>
+          <h2 className="text-xl font-bold text-on-surface">Program Requirement Groups & Course Listing</h2>
+          <p className="text-xs text-on-surface-variant">Credit totals by degree requirement category.</p>
         </div>
 
         <div className="space-y-4">
@@ -403,32 +380,6 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
           ))}
         </div>
       </section>
-
-      {relatedPrograms.length > 0 && (
-        <section className="space-y-3 pt-2 border-t border-surface-variant" aria-labelledby="related-programs-heading">
-          <div>
-            <h2 id="related-programs-heading" className="text-xl font-bold text-on-surface">
-              Related {relatedCategory} Programs
-            </h2>
-            <p className="text-xs text-on-surface-variant">
-              Other unofficial degree maps with similar credentials, titles, or shared course requirements.
-            </p>
-          </div>
-          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {relatedPrograms.map((related) => (
-              <li key={related.slug}>
-                <Link
-                  href={`/programs/${related.slug}`}
-                  className="block rounded-lg border border-surface-variant bg-surface-container-lowest px-4 py-3 transition-colors hover:border-primary hover:bg-surface-container-low"
-                >
-                  <span className="text-sm font-bold text-primary">{related.title}</span>
-                  <span className="mt-0.5 block text-xs text-on-surface-variant">{related.credential}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }

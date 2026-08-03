@@ -55,11 +55,21 @@ describe("graph image export lazy loading", () => {
       join(process.cwd(), "src/components/graph/DynamicDegreeMapGraph.tsx"),
       "utf8",
     );
+    const graphSource = readFileSync(
+      join(process.cwd(), "src/components/graph/DegreeMapGraph.tsx"),
+      "utf8",
+    );
 
     expect(shellSource).toContain("DEGREE_MAP_CANVAS_HEIGHT_PX = 650");
     expect(fallbackSource).toContain("DEGREE_MAP_CANVAS_HEIGHT_CLASS");
-    expect(fallbackSource).toContain("w-[320px]");
+    expect(fallbackSource).not.toContain("w-[320px]");
+    expect(fallbackSource).not.toContain("Show degree requirements");
     expect(wrapperSource).toContain("DegreeMapGraphLoadingFallback");
+    expect(graphSource).not.toContain("RequirementsSidePanel");
+    expect(graphSource).not.toContain("requirementsHref");
+    expect(graphSource).not.toContain("selectedRequirementId");
+    expect(graphSource).toContain("Dependencies");
+    expect(graphSource).toContain("By Requirement");
   });
 });
 

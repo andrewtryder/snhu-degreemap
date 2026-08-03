@@ -72,10 +72,9 @@ describe("Program requirements page", () => {
     render(element);
 
     expect(await screen.findByRole("heading", { name: "Computer Science", level: 1 })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /View full courses and requirements/i })).toHaveAttribute(
-      "href",
-      "/programs/computer-science-bs/requirements",
-    );
+    expect(screen.queryByRole("link", { name: /View full courses and requirements/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /View every course and requirement/i })).not.toBeInTheDocument();
+    expect(screen.getByText("Program Requirement Groups & Course Listing")).toBeInTheDocument();
     expect(screen.queryByText("MAT 241: Modern Statistics")).not.toBeInTheDocument();
     expect(screen.queryByText("Choose 1 of the following")).not.toBeInTheDocument();
     expect(screen.queryByText("Complete catalog rule text")).not.toBeInTheDocument();

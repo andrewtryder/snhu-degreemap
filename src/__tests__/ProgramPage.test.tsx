@@ -59,10 +59,9 @@ describe("Computer Science Program Page", () => {
 
     expect(screen.getByText("Program Requirement Groups & Course Listing")).toBeInTheDocument();
     expect(screen.getByText("Credit totals by degree requirement category.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /View full courses and requirements/i })).toHaveAttribute(
-      "href",
-      "/programs/computer-science-bs/requirements",
-    );
+    expect(screen.queryByRole("link", { name: /View full courses and requirements/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /View every course and requirement/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Related .* Programs/i })).not.toBeInTheDocument();
     expect(screen.getAllByText("42 Total Credits").length).toBeGreaterThan(0);
     expect(screen.queryByText("Complete all of the following")).not.toBeInTheDocument();
     expect(screen.queryByText("Complete catalog rule text")).not.toBeInTheDocument();
@@ -75,10 +74,6 @@ describe("Computer Science Program Page", () => {
     expect(
       screen.getByRole("heading", { name: "Courses in the Computer Science Program", level: 2 }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /View every course and requirement/i })).toHaveAttribute(
-      "href",
-      "/programs/computer-science-bs/requirements#course-inventory-heading",
-    );
     expect(screen.getByText("Introduction to Scripting")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "IT 140" })).toHaveAttribute(
       "href",
@@ -92,6 +87,7 @@ describe("Computer Science Program Page", () => {
     ).toBeInTheDocument();
     expect(screen.queryByLabelText(/Search courses in degree map/i)).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/Search map/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Show degree requirements/i })).not.toBeInTheDocument();
   }, 15000);
 
   it("triggers 404 for invalid program slug", async () => {

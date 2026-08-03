@@ -50,18 +50,3 @@ export function buildProgramRequirementsDescription(
 ): string {
   return `Unofficial SNHU ${program.title} (${program.credential}) courses and requirement groups for catalog year ${program.catalogYear}. Review nested catalog rules and known prerequisite links.`;
 }
-
-export function categoryLabelForRelated(category: string): string {
-  switch (category) {
-    case "associate":
-      return "Associate";
-    case "bachelor":
-      return "Bachelor’s";
-    case "graduate":
-      return "Graduate";
-    case "certificate":
-      return "Certificate";
-    default:
-      return "Related";
-  }
-}
