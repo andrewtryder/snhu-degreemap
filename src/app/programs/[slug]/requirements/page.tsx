@@ -84,7 +84,9 @@ export async function ProgramRequirementsContent({ slug }: { slug: string }) {
   const programId = `${programUrl}#program`;
   const lastUpdated = await getCatalogLastUpdated();
   const dateModified = toIsoDateString(lastUpdated);
-  const resolvedCourseCount = program.nodes.filter((course) => !course.isPlaceholder).length;
+  const resolvedCourseCount = program.nodes.filter(
+    (course) => !course.isPlaceholder && !course.isExternal,
+  ).length;
   const edgeCount = program.edges.length;
 
   const programEntity: Record<string, unknown> = {

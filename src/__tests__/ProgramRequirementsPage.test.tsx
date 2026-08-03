@@ -14,6 +14,15 @@ vi.mock("@/components/graph/DynamicDegreeMapGraph", () => ({
   DynamicDegreeMapGraph: () => <div data-testid="dynamic-degree-map">map</div>,
 }));
 
+vi.mock("@/components/programs/ProgramTransferCoverage", () => ({
+  ProgramTransferCoverage: () => (
+    <div>
+      <h2>Transfer Integration</h2>
+      <p>0 of 0 identified program courses have known transfer listings.</p>
+    </div>
+  ),
+}));
+
 describe("Program requirements page", () => {
   it("renders crawlable requirement groups, nested items, and course inventory", async () => {
     const element = await ProgramRequirementsContent({ slug: "computer-science-bs" });
