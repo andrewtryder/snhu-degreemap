@@ -14,11 +14,7 @@ import {
   toIsoDateString,
 } from "@/lib/serverData";
 import { buildDegreeGraph } from "@/lib/graphTransformer";
-import {
-  calculateProgramTransferInsights,
-  getCoursesUrlForCourse,
-  getTransferUrlForCourse,
-} from "@/lib/transferIntegration";
+import { getCoursesUrlForCourse } from "@/lib/transferIntegration";
 import { buildCourseLookup, resolvePrerequisites } from "@/lib/coursePrerequisites";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { isIndexableDeployment } from "@/lib/deploymentEnv";
@@ -28,6 +24,7 @@ import {
   buildProgramMapTitle,
   categoryLabelForRelated,
 } from "@/lib/programSeo";
+import { ProgramTransferCoverage } from "@/components/programs/ProgramTransferCoverage";
 import {
   CalendarIcon,
   ExternalLinkIcon,
@@ -106,20 +103,21 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
     ...new Set([
       ...startingCourses,
       ...criticalCourses,
-      ...program.nodes.filter((course) => !course.isPlaceholder).map((course) => course.code),
+      ...program.nodes
+        .filter((course) => !course.isPlaceholder && !course.isExternal)
+        .map((course) => course.code),
     ]),
   ].slice(0, 12);
 
   const coursesByCode = new Map(program.nodes.map((course) => [course.code, course]));
   const previewCourses = previewCodes.flatMap((code) => {
     const course = coursesByCode.get(code);
-    if (!course || course.isPlaceholder) return [];
+    if (!course || course.isPlaceholder || course.isExternal) return [];
     return [course];
   });
   const coursesById = buildCourseLookup(program.nodes);
 
   const baseUrl = getSiteUrl();
-  const transferInsights = calculateProgramTransferInsights(program);
   const programUrl = `${baseUrl}/programs/${program.slug}`;
   const programId = `${programUrl}#program`;
   const relatedCategory = categoryLabelForRelated(getProgramLevelCategory(program));
@@ -234,46 +232,15 @@ export async function ProgramDetailContent({ slug }: { slug: string }) {
         <p className="text-xs sm:text-sm leading-relaxed text-on-surface-variant max-w-4xl">{program.description}</p>
       </div>
 
-      <Card className="border-emerald-200 bg-emerald-50/50 space-y-2">
-        <h2 className="text-sm font-bold text-emerald-950">Transfer Integration</h2>
-        <p className="text-xs text-emerald-900">
-          {transferInsights.transferableCoursesCount} of {transferInsights.totalCourses} required courses have known
-          transfer equivalencies ({transferInsights.coveragePercentage}%).
-        </p>
-
-        {transferInsights.transferableCourseCodes.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            <span className="text-xs font-semibold text-emerald-900 self-center mr-1">
-              Courses with known transfer listings:
-            </span>
-            {transferInsights.transferableCourseCodes.map((code) => {
-              const href = getTransferUrlForCourse(code);
-              if (!href) {
-                return (
-                  <span
-                    key={code}
-                    className="rounded-full border border-emerald-300 bg-white px-2.5 py-0.5 text-xs font-medium text-emerald-800"
-                  >
-                    {code}
-                  </span>
-                );
-              }
-              return (
-                <a
-                  key={code}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`View transfer equivalencies for ${code}`}
-                  className="rounded-full border border-emerald-300 bg-white px-2.5 py-0.5 text-xs font-medium text-emerald-800 transition-colors hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-                >
-                  {code}
-                </a>
-              );
-            })}
-          </div>
-        )}
-      </Card>
+      <Suspense
+        fallback={
+          <Card className="border-surface-variant">
+            <p className="text-xs text-on-surface-variant">Loading transfer coverage…</p>
+          </Card>
+        }
+      >
+        <ProgramTransferCoverage program={program} />
+      </Suspense>
 
       {previewCourses.length > 0 && (
         <section className="space-y-4" aria-labelledby="course-preview-heading">

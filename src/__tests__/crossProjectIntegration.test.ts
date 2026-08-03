@@ -2,12 +2,9 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   getCoursesUrlForCourse,
   getTransferUrlForCourse,
-  getTransferSnapshotForCourse,
-  calculateProgramTransferInsights,
   normalizeTransferCourseCode,
   courseCodeToTransferPathSegment,
 } from "@/lib/transferIntegration";
-import { fixturePrograms } from "@/data/fixturePrograms";
 
 describe("Cross-Project Integration (snhu-courses & snhu-transfers)", () => {
   const originalEnv = process.env;
@@ -27,7 +24,7 @@ describe("Cross-Project Integration (snhu-courses & snhu-transfers)", () => {
     expect(url).toBe("https://snhu-courses.vercel.app/course/CS110");
   });
 
-  it("generates canonical snhu-transfers URL for course with snapshot data", () => {
+  it("generates canonical snhu-transfers URL for a course code", () => {
     process.env.NEXT_PUBLIC_TRANSFERS_URL = "https://snhu-transfers.vercel.app";
     const url = getTransferUrlForCourse("CS 110");
     expect(url).toBe("https://snhu-transfers.vercel.app/courses/CS110");
@@ -47,27 +44,5 @@ describe("Cross-Project Integration (snhu-courses & snhu-transfers)", () => {
 
     expect(coursesUrl).toContain("/course/CS110");
     expect(transfersUrl).toContain("/courses/CS110");
-  });
-
-  it("returns transfer snapshot metadata when available", () => {
-    const snapshot = getTransferSnapshotForCourse("CS 110");
-    expect(snapshot).not.toBeNull();
-    expect(snapshot?.equivalencyCount).toBeGreaterThan(0);
-    expect(snapshot?.topProviders).toContain("Sophia");
-  });
-
-  it("returns null for unknown course codes without transfer options", () => {
-    const snapshot = getTransferSnapshotForCourse("UNKNOWN 999");
-    expect(snapshot).toBeNull();
-  });
-
-  it("calculates program transfer insights metrics", () => {
-    const csProgram = fixturePrograms.find((p) => p.slug === "computer-science-bs")!;
-    const insights = calculateProgramTransferInsights(csProgram);
-
-    expect(insights.totalCourses).toBeGreaterThan(0);
-    expect(insights.transferableCoursesCount).toBeGreaterThan(0);
-    expect(insights.coveragePercentage).toBeGreaterThan(0);
-    expect(insights.transferableCourseCodes).toContain("CS 210");
   });
 });

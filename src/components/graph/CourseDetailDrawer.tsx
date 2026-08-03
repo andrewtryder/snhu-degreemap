@@ -4,18 +4,13 @@ import React from "react";
 import { CourseNodeData } from "@/types/program";
 import { Dialog } from "@/components/ui/Dialog";
 import { Badge } from "@/components/ui/Badge";
-import {
-  getCoursesUrlForCourse,
-  getTransferUrlForCourse,
-  getTransferSnapshotForCourse,
-} from "@/lib/transferIntegration";
+import { getCoursesUrlForCourse, getTransferUrlForCourse } from "@/lib/transferIntegration";
 import {
   BookOpenIcon,
   CheckCircle2Icon,
   LayersIcon,
   ExternalLinkIcon,
   ArrowRightLeftIcon,
-  InfoIcon,
 } from "lucide-react";
 
 export interface CourseDetailDrawerProps {
@@ -29,7 +24,6 @@ export function CourseDetailDrawer({ course, onClose, allCourses = [] }: CourseD
 
   const coursesUrl = getCoursesUrlForCourse(course.code);
   const transferUrl = getTransferUrlForCourse(course.code);
-  const transferSnapshot = getTransferSnapshotForCourse(course.code);
 
   const prereqCourses = (course.prerequisites || [])
     .map((id) => allCourses.find((c) => c.id === id || c.code === id))
@@ -84,36 +78,21 @@ export function CourseDetailDrawer({ course, onClose, allCourses = [] }: CourseD
           </div>
         )}
 
-        {transferSnapshot && transferUrl && (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-xs text-emerald-950 space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-bold flex items-center gap-1.5 text-emerald-900">
-                <ArrowRightLeftIcon className="h-4 w-4 text-emerald-700" />
-                {transferSnapshot.equivalencyCount} Known Transfer Equivalency Options
-              </span>
-              <a
-                href={transferUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-semibold text-emerald-800 hover:underline"
-              >
-                Explore on snhu-transfers <ExternalLinkIcon className="h-3 w-3" />
-              </a>
-            </div>
-
-            {transferSnapshot.topProviders && (
-              <p className="text-[11px] text-emerald-800">
-                Known providers: {transferSnapshot.topProviders.join(", ")}
-              </p>
-            )}
-
-            <div className="pt-1 text-[11px] text-emerald-800 flex items-start gap-1">
-              <InfoIcon className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              <span>
-                Transfer data snapshot updated {transferSnapshot.lastUpdated}. All transfer course evaluations require
-                official review and approval by SNHU.
-              </span>
-            </div>
+        {transferUrl && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-xs text-emerald-950">
+            <a
+              href={transferUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 font-semibold text-emerald-900 hover:underline"
+            >
+              <ArrowRightLeftIcon className="h-4 w-4 text-emerald-700" />
+              View transfer listings on snhu-transfers
+              <ExternalLinkIcon className="h-3 w-3" />
+            </a>
+            <p className="mt-1.5 text-[11px] text-emerald-800">
+              Transfer course evaluations require official review and approval by SNHU.
+            </p>
           </div>
         )}
 

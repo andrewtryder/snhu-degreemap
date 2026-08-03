@@ -13,6 +13,10 @@ vi.mock("@/components/graph/DynamicDegreeMapGraph", () => ({
   DynamicDegreeMapGraph: () => <div data-testid="dynamic-degree-map">map</div>,
 }));
 
+vi.mock("@/components/programs/ProgramTransferCoverage", () => ({
+  ProgramTransferCoverage: () => <div data-testid="transfer-coverage">transfer</div>,
+}));
+
 describe("program detail SEO content", () => {
   it("includes enriched JSON-LD and related program links", async () => {
     const element = await ProgramDetailContent({ slug: "computer-science-bs" });

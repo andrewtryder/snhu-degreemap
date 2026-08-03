@@ -4,8 +4,6 @@ import React, { memo } from "react";
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import { CourseNodeData } from "@/types/program";
 import { CategoryPalette } from "@/lib/graphLayout";
-import { getTransferSnapshotForCourse } from "@/lib/transferIntegration";
-import { ArrowRightLeftIcon } from "lucide-react";
 
 interface CustomCourseNodeData extends CourseNodeData {
   palette: CategoryPalette;
@@ -14,9 +12,8 @@ interface CustomCourseNodeData extends CourseNodeData {
 }
 
 export const CustomCourseNode = memo(({ data }: NodeProps & { data: CustomCourseNodeData }) => {
-  const { code, title, credits, palette, isPlaceholder, isExternal, resolutionStatus, isHighlighted, isFilteredOut } = data;
-
-  const transferSnapshot = getTransferSnapshotForCourse(code);
+  const { code, title, credits, palette, isPlaceholder, isExternal, resolutionStatus, isHighlighted, isFilteredOut } =
+    data;
 
   const opacityClass = isFilteredOut ? "opacity-30 transition-opacity" : "opacity-100";
   const highlightClass = isHighlighted
@@ -45,14 +42,6 @@ export const CustomCourseNode = memo(({ data }: NodeProps & { data: CustomCourse
           >
             {code}
           </span>
-          {transferSnapshot && (
-            <span
-              title={`${transferSnapshot.equivalencyCount} transfer options on snhu-transfers`}
-              className="inline-flex items-center rounded-full bg-emerald-100 p-0.5 text-emerald-800"
-            >
-              <ArrowRightLeftIcon className="h-2.5 w-2.5" />
-            </span>
-          )}
           {isExternal && <span className="text-[9px] font-semibold text-on-surface-variant">External</span>}
         </div>
         <span
