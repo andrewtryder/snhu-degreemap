@@ -1,11 +1,19 @@
 import { MetadataRoute } from "next";
 import { getCatalogLastUpdated, getSitemapPrograms } from "@/lib/serverData";
+import { PROGRAM_LEVEL_PATHS } from "@/lib/programLevelCategories";
 import { getSiteUrl } from "@/lib/siteUrl";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getSiteUrl();
   const catalogUpdated = await getCatalogLastUpdated();
   const staticLastModified = catalogUpdated ?? undefined;
+
+  const categoryRoutes: MetadataRoute.Sitemap = PROGRAM_LEVEL_PATHS.map((entry) => ({
+    url: `${baseUrl}/programs/${entry.path}`,
+    lastModified: staticLastModified,
+    changeFrequency: "weekly" as const,
+    priority: 0.85,
+  }));
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
@@ -20,6 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    ...categoryRoutes,
     {
       url: `${baseUrl}/about`,
       lastModified: staticLastModified,

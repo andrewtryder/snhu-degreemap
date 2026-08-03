@@ -39,15 +39,23 @@ describe("SEO, Metadata & Sitemap Generation", () => {
     expect(r.sitemap).toBeUndefined();
   });
 
-  it("generates sitemap entries for static, program, and requirements routes", async () => {
+  it("generates sitemap entries for static, category, program, and requirements routes", async () => {
     const entries = await sitemap();
     const urls = entries.map((e) => e.url);
 
     expect(urls).toContain(PRODUCTION_SITE_URL);
     expect(urls).toContain(`${PRODUCTION_SITE_URL}/programs`);
+    expect(urls).toContain(`${PRODUCTION_SITE_URL}/programs/associate`);
+    expect(urls).toContain(`${PRODUCTION_SITE_URL}/programs/bachelors`);
+    expect(urls).toContain(`${PRODUCTION_SITE_URL}/programs/graduate`);
+    expect(urls).toContain(`${PRODUCTION_SITE_URL}/programs/certificates`);
     expect(urls).toContain(`${PRODUCTION_SITE_URL}/about`);
     expect(urls).toContain(`${PRODUCTION_SITE_URL}/programs/computer-science-bs`);
     expect(urls).toContain(`${PRODUCTION_SITE_URL}/programs/computer-science-bs/requirements`);
+
+    const bachelorsEntry = entries.find((e) => e.url === `${PRODUCTION_SITE_URL}/programs/bachelors`);
+    expect(bachelorsEntry?.priority).toBe(0.85);
+    expect(bachelorsEntry?.changeFrequency).toBe("weekly");
 
     expect(urls.some((u) => u.includes("/data-status"))).toBe(false);
     expect(urls.some((u) => u.includes("/methodology"))).toBe(false);
@@ -68,10 +76,8 @@ describe("SEO, Metadata & Sitemap Generation", () => {
     expect(meta.alternates?.canonical).toBe(`${PRODUCTION_SITE_URL}/programs/computer-science-bs`);
   });
 
-  it("canonicalizes directory filter variants to /programs", async () => {
-    const meta = await generateProgramsMetadata({
-      searchParams: Promise.resolve({ level: "bachelor" }),
-    });
+  it("keeps the all-programs directory canonicalized to /programs", async () => {
+    const meta = await generateProgramsMetadata();
     expect(meta.alternates?.canonical).toBe("/programs");
   });
 });

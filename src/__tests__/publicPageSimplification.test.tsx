@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import HomePage from "@/app/page";
 import AboutPage from "@/app/about/page";
-import { filterProgramsByLevel, ProgramLevelFilterPills } from "@/app/programs/page";
+import { filterProgramsByLevel } from "@/lib/programLevelCategories";
+import { ProgramLevelFilterPills } from "@/components/programs/ProgramDirectory";
 import { fixturePrograms } from "@/data/fixturePrograms";
 import { getProgramLevelCategory } from "@/lib/programLevelCategories";
 
@@ -60,9 +61,9 @@ describe("public page simplification", () => {
     render(<ProgramLevelFilterPills level="bachelor" />);
 
     expect(screen.getByRole("link", { name: "All" })).toHaveAttribute("href", "/programs");
-    expect(screen.getByRole("link", { name: "Associate" })).toHaveAttribute("href", "/programs?level=associate");
+    expect(screen.getByRole("link", { name: "Associate" })).toHaveAttribute("href", "/programs/associate");
     expect(screen.getByRole("link", { name: "Bachelor’s (BA & BS)" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: "Graduate (MA/MS)" })).toHaveAttribute("href", "/programs?level=graduate");
-    expect(screen.getByRole("link", { name: "Certificate" })).toHaveAttribute("href", "/programs?level=certificate");
+    expect(screen.getByRole("link", { name: "Graduate (MA/MS)" })).toHaveAttribute("href", "/programs/graduate");
+    expect(screen.getByRole("link", { name: "Certificate" })).toHaveAttribute("href", "/programs/certificates");
   });
 });

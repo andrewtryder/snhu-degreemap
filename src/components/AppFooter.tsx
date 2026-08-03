@@ -27,22 +27,22 @@ export function AppFooter({ lastUpdated = null }: { lastUpdated?: Date | string 
             </h3>
             <ul className="mt-3 space-y-2 text-xs">
               <li>
-                <Link href="/programs?level=associate" className="hover:text-primary hover:underline">
+                <Link href="/programs/associate" className="hover:text-primary hover:underline">
                   Browse All Associate Programs
                 </Link>
               </li>
               <li>
-                <Link href="/programs?level=bachelor" className="hover:text-primary hover:underline">
+                <Link href="/programs/bachelors" className="hover:text-primary hover:underline">
                   Browse All Bachelor’s Programs (BA & BS)
                 </Link>
               </li>
               <li>
-                <Link href="/programs?level=graduate" className="hover:text-primary hover:underline">
+                <Link href="/programs/graduate" className="hover:text-primary hover:underline">
                   Browse All Graduate Programs
                 </Link>
               </li>
               <li>
-                <Link href="/programs?level=certificate" className="hover:text-primary hover:underline">
+                <Link href="/programs/certificates" className="hover:text-primary hover:underline">
                   Browse Certificate Programs
                 </Link>
               </li>
