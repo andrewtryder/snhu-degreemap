@@ -1,6 +1,6 @@
 import { DegreeProgram } from "@/types/program";
 import { Card } from "@/components/ui/Card";
-import { getProgramTransferCoverage } from "@/lib/transferCoverage.server";
+import { getProgramTransferCoverage, parseCoverageUpdatedAt } from "@/lib/transferCoverage.server";
 
 export async function ProgramTransferCoverage({ program }: { program: DegreeProgram }) {
   const result = await getProgramTransferCoverage(program);
@@ -17,6 +17,7 @@ export async function ProgramTransferCoverage({ program }: { program: DegreeProg
   }
 
   const matched = result.data.courses.filter((course) => course.hasTransferEquivalencies);
+  const updatedAt = parseCoverageUpdatedAt(result.data.dataLastUpdatedAt);
 
   return (
     <Card className="border-emerald-200 bg-emerald-50/50 space-y-2">
@@ -27,13 +28,13 @@ export async function ProgramTransferCoverage({ program }: { program: DegreeProg
         transfer listings.
       </p>
 
-      {result.data.dataLastUpdatedAt ? (
+      {updatedAt ? (
         <p className="text-[11px] text-emerald-800">
           Transfer data last updated{" "}
           {new Intl.DateTimeFormat("en-US", {
             dateStyle: "medium",
             timeZone: "UTC",
-          }).format(new Date(result.data.dataLastUpdatedAt))}
+          }).format(updatedAt)}
         </p>
       ) : null}
 
