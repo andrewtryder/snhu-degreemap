@@ -38,7 +38,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "html-to-image": "1.11.13",
-    "jsdom": "^26.0.0",
+    "jsdom": "^30.0.1",
     "lucide-react": "^1.22.0",
     "next": "^16.2.9",
     "pg": "^8.22.0",
