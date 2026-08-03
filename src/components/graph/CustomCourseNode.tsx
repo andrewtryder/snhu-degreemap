@@ -8,25 +8,36 @@ import { CategoryPalette } from "@/lib/graphLayout";
 interface CustomCourseNodeData extends CourseNodeData {
   palette: CategoryPalette;
   isHighlighted?: boolean;
-  isFilteredOut?: boolean;
+  isRequirementHighlighted?: boolean;
 }
 
 export const CustomCourseNode = memo(({ data }: NodeProps & { data: CustomCourseNodeData }) => {
-  const { code, title, credits, palette, isPlaceholder, isExternal, resolutionStatus, isHighlighted, isFilteredOut } =
-    data;
+  const {
+    code,
+    title,
+    credits,
+    palette,
+    isPlaceholder,
+    isExternal,
+    resolutionStatus,
+    isHighlighted,
+    isRequirementHighlighted,
+  } = data;
 
-  const opacityClass = isFilteredOut ? "opacity-30 transition-opacity" : "opacity-100";
   const highlightClass = isHighlighted
     ? "ring-4 ring-primary ring-offset-2 scale-105 transition-transform"
-    : "";
+    : isRequirementHighlighted
+      ? "outline outline-4 outline-dashed outline-secondary outline-offset-2"
+      : "";
 
   return (
     <div
-      className={`group relative flex h-[80px] w-[180px] flex-col justify-between rounded-lg border-2 p-2.5 shadow-sm transition-all hover:shadow-md ${opacityClass} ${highlightClass} ${isExternal ? "border-dashed" : ""}`}
+      className={`group relative flex h-[80px] w-[180px] flex-col justify-between rounded-lg border-2 p-2.5 shadow-sm transition-all hover:shadow-md ${highlightClass} ${isExternal ? "border-dashed" : ""}`}
       style={{
         backgroundColor: palette.bg,
         borderColor: palette.border,
       }}
+      aria-current={isRequirementHighlighted ? "true" : undefined}
     >
       <Handle
         type="target"
