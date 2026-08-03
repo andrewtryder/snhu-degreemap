@@ -27,5 +27,10 @@ describe("Trust & Methodology Pages", () => {
     render(await AboutPage());
     expect(screen.getByRole("heading", { name: /About SNHU Degree Map/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Important Disclaimer/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Related Projects/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "github.com/andrewtryder/snhu-degreemap" }),
+    ).toHaveAttribute("href", "https://github.com/andrewtryder/snhu-degreemap");
+    expect(screen.getByText(/This project is open source and the code may be found at/i)).toBeInTheDocument();
   });
 });

@@ -165,12 +165,7 @@ export default async function HomePage() {
                   className="flex flex-col justify-between space-y-4"
                 >
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <Badge variant="outline">{program.degreeLevel}</Badge>
-                      <span className="text-[11px] font-semibold text-outline">
-                        {program.catalogYear}
-                      </span>
-                    </div>
+                    <Badge variant="outline">{program.degreeLevel}</Badge>
 
                     <h3 className="text-lg font-bold text-on-surface hover:text-primary transition-colors">
                       <Link href={`/programs/${program.slug}`}>{program.title}</Link>

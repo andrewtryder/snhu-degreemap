@@ -45,6 +45,7 @@ describe("public page simplification", () => {
     expect(screen.getByRole("heading", { name: /Computer Science/i, level: 3 })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Psychology/i, level: 3 })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /Cybersecurity/i, level: 3 })).not.toBeInTheDocument();
+    expect(screen.queryByText("2025-2026")).not.toBeInTheDocument();
     expect(
       screen.getAllByRole("link", { name: /Computer Science/i }).length,
     ).toBeGreaterThan(0);
