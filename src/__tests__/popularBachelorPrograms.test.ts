@@ -14,15 +14,21 @@ describe("popular bachelor programs", () => {
     const resolved = resolvePopularBachelorPrograms(fixturePrograms, { warn });
 
     expect(resolved.length).toBeGreaterThan(0);
-    expect(resolved.length).toBeLessThanOrEqual(15);
+    expect(resolved.length).toBeLessThanOrEqual(4);
     expect(resolved.every((program) => getProgramLevelCategory(program) === "bachelor")).toBe(true);
-    expect(resolved.some((program) => program.slug === "computer-science-bs")).toBe(true);
+    expect(resolved.map((program) => program.slug)).toEqual([
+      "business-administration-bs",
+      "computer-science-bs",
+      "psychology-ba",
+    ]);
 
     const configuredOrder = POPULAR_BACHELOR_PROGRAM_SLUGS.filter((slug) =>
       resolved.some((program) => program.slug === slug),
     );
     expect(resolved.map((program) => program.slug)).toEqual(configuredOrder);
-    expect(warn).toHaveBeenCalled();
+    expect(warn.mock.calls.some(([message]) => String(message).includes("criminal-justice-bs"))).toBe(
+      true,
+    );
   });
 
   it("skips missing slugs without substituting unrelated programs", () => {
@@ -32,7 +38,9 @@ describe("popular bachelor programs", () => {
 
     expect(resolved).toHaveLength(1);
     expect(resolved[0]?.slug).toBe("computer-science-bs");
-    expect(warn.mock.calls.some(([message]) => String(message).includes("cybersecurity-bs"))).toBe(true);
+    expect(warn.mock.calls.some(([message]) => String(message).includes("criminal-justice-bs"))).toBe(
+      true,
+    );
   });
 
   it("filters out non-bachelor matches for a configured slug", () => {
