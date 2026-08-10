@@ -3,10 +3,15 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { DegreeMapGraph } from "@/components/graph/DegreeMapGraph";
 import { fixturePrograms } from "@/data/fixturePrograms";
 
-const toPngMock = vi.fn(async () => "data:image/png;base64,TESTPNG");
+type ToPng = (
+  element: HTMLElement,
+  options?: { filter?: (node: HTMLElement) => boolean },
+) => Promise<string>;
+
+const toPngMock = vi.fn<ToPng>(async () => "data:image/png;base64,TESTPNG");
 
 vi.mock("html-to-image", () => ({
-  toPng: (...args: unknown[]) => toPngMock(...args),
+  toPng: (...args: Parameters<ToPng>) => toPngMock(...args),
 }));
 
 vi.mock("@xyflow/react", async () => {
@@ -54,7 +59,7 @@ describe("DegreeMapGraph image export", () => {
     expect(screen.getByRole("button", { name: /Download PNG/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Print Image/i })).toBeInTheDocument();
 
-    const filterArg = toPngMock.mock.calls[0]?.[1] as { filter?: (n: HTMLElement) => boolean } | undefined;
+    const filterArg = toPngMock.mock.calls[0]?.[1];
     expect(filterArg?.filter).toBeTypeOf("function");
     const controls = document.createElement("div");
     controls.className = "react-flow__controls";
