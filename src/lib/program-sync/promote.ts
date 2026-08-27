@@ -1,8 +1,8 @@
-import { PoolClient } from "pg";
+import { Client } from "pg";
 import { StagingValidationResult } from "./types";
 
 export async function validateStaging(
-  client: PoolClient,
+  client: Client,
   expectedCount: number,
   failedCount: number,
   allowLargeShrink = false
@@ -141,7 +141,7 @@ export async function validateStaging(
   };
 }
 
-export async function promoteStagingToLive(client: PoolClient, syncId: string): Promise<void> {
+export async function promoteStagingToLive(client: Client, syncId: string): Promise<void> {
   try {
     await client.query("BEGIN;");
 

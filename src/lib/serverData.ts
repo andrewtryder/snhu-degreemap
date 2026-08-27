@@ -1,7 +1,8 @@
 import "server-only";
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
-import { Pool } from "pg";
+import type { Pool } from "pg";
+import { getPool } from "@/lib/db/pool";
 import {
   DegreeProgram,
   CourseNodeData,
@@ -19,12 +20,8 @@ import { getCourseCodeKey, getCourseNodeId, normalizeCourseCode } from "@/lib/co
 import { resolvePublicCatalogUrl } from "@/lib/snhuCatalog";
 import { rankRelatedPrograms, type RelatedProgramCandidate } from "@/lib/relatedPrograms";
 
-let poolInstance: Pool | null = null;
-
 function getDbPool(): Pool | null {
-  const connectionString = process.env.POSTGRES_URL;
-  if (!connectionString) {
-    poolInstance = null;
+  if (!process.env.POSTGRES_URL) {
     return null;
   }
 
@@ -32,16 +29,8 @@ function getDbPool(): Pool | null {
     return null;
   }
 
-  if (poolInstance) return poolInstance;
-
   try {
-    poolInstance = new Pool({
-      connectionString,
-      ssl: connectionString.includes("localhost") ? false : { rejectUnauthorized: false },
-      max: 5,
-      connectionTimeoutMillis: 1000,
-    });
-    return poolInstance;
+    return getPool();
   } catch {
     return null;
   }

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { getDbPool } from "./database";
+import { recordProgramSyncError, withProgramSyncConnection } from "./database";
 import { fetchKualiProgramList, fetchKualiProgramDetail, fetchKualiCourseDetail, fetchKualiCourseList } from "./fetch";
 import { parseProgramPayload, parseCoursePayload, extractCourseReferences, generatePrerequisiteEdges } from "./parse";
 import { NormalizedCourseDetails } from "@/lib/kualiCourseParser";
@@ -19,10 +19,7 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
   const syncId = randomUUID();
 
   try {
-    const pool = getDbPool();
-    const client = await pool.connect();
-
-    try {
+    return await withProgramSyncConnection(async (client) => {
       // 1. Atomic Lease Acquisition
       const leaseExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minute lease
       const leaseRes = await client.query<ProgramSyncState>(
@@ -305,22 +302,12 @@ export async function runProgramSync(options: SyncOptions = {}): Promise<SyncRes
         promoted: true,
         message: `Successfully synchronized and promoted ${importedCount} programs and ${parsedCourses.length} courses to live database.`,
       };
-    } finally {
-      client.release();
-    }
+    });
   } catch (err: unknown) {
     const errorMsg = (err as Error).message;
     console.error("[Program Sync Error]", errorMsg);
 
-    try {
-      const pool = getDbPool();
-      await pool.query(
-        "UPDATE program_sync_state SET status = 'error', last_error = $1 WHERE id = 'program_sync' AND sync_id = $2;",
-        [errorMsg, syncId]
-      );
-    } catch {
-      // ignore secondary error
-    }
+    await recordProgramSyncError(syncId, errorMsg);
 
     return {
       action: "error",

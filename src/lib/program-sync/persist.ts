@@ -1,10 +1,10 @@
-import { PoolClient } from "pg";
+import { Client } from "pg";
 import { CatalogProgram, RequirementGroupDomain, PrerequisiteEdgeDomain } from "@/types/domainCatalog";
 import { NormalizedCourseDetails } from "@/lib/kualiCourseParser";
 import { normalizeCourseCode } from "@/lib/courseCode";
 
 export async function persistProgramToStaging(
-  client: PoolClient,
+  client: Client,
   program: CatalogProgram,
   catalogDbId: string
 ): Promise<void> {
@@ -51,7 +51,7 @@ export async function persistProgramToStaging(
 }
 
 async function persistGroupToStaging(
-  client: PoolClient,
+  client: Client,
   programDbId: string,
   parentGroupId: string | null,
   group: RequirementGroupDomain,
@@ -144,7 +144,7 @@ async function persistGroupToStaging(
 }
 
 export async function persistCoursesToStaging(
-  client: PoolClient,
+  client: Client,
   courses: NormalizedCourseDetails[]
 ): Promise<void> {
   for (const course of courses) {
@@ -176,7 +176,7 @@ export async function persistCoursesToStaging(
 }
 
 export async function persistEdgesToStaging(
-  client: PoolClient,
+  client: Client,
   edges: PrerequisiteEdgeDomain[]
 ): Promise<void> {
   for (const edge of edges) {

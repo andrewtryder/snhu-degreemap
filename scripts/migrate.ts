@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { Pool } from "pg";
+import { createPgClient } from "@/lib/db/client";
 
 dotenv.config();
 
@@ -11,12 +11,8 @@ export async function runMigrations(connectionString?: string) {
     process.exit(1);
   }
 
-  const pool = new Pool({
-    connectionString: url,
-    ssl: url.includes("localhost") ? false : { rejectUnauthorized: false },
-  });
-
-  const client = await pool.connect();
+  const client = createPgClient(url);
+  await client.connect();
 
   try {
     console.log("[Migration] Beginning PostgreSQL database migration...");
@@ -294,8 +290,7 @@ export async function runMigrations(connectionString?: string) {
     console.error("[Migration Error] Migration failed:", error);
     throw error;
   } finally {
-    client.release();
-    await pool.end();
+    await client.end();
   }
 }
 
