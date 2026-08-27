@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { AppFooter, formatCatalogLastUpdated } from "@/components/AppFooter";
 
 describe("AppFooter Component", () => {
-  it("renders compact footer with last updated, disclaimer, and SNHU Tools links", () => {
+  it("renders compact footer with last updated, disclaimer, and local links", () => {
     render(<AppFooter lastUpdated={new Date("2026-07-31T12:00:00Z")} />);
 
     expect(screen.getByText(/Last Updated:/)).toBeInTheDocument();
@@ -15,9 +15,6 @@ describe("AppFooter Component", () => {
       "href",
       "https://github.com/andrewtryder/snhu-degreemap"
     );
-    expect(screen.getByText("Course Prerequisites")).toBeInTheDocument();
-    expect(screen.getByText("Transfer Equivalencies")).toBeInTheDocument();
-    expect(screen.getByText("Degree Map", { selector: "[aria-current='page']" })).toBeInTheDocument();
   });
 
   it("shows an honest fallback when synchronization data is unavailable", () => {
