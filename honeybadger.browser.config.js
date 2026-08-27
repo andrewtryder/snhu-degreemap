@@ -5,6 +5,7 @@ export const config = {
   environment: process.env.NEXT_PUBLIC_VERCEL_ENV || process.env.VERCEL_ENV || process.env.NODE_ENV,
   revision: process.env.NEXT_PUBLIC_HONEYBADGER_REVISION,
   projectRoot: 'webpack://_N_E/./',
+  ignoreBrowserExtensionErrors: true,
   // debug: true,
   // reportData: true,
 }
