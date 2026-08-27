@@ -48,17 +48,36 @@ export default async function AboutPage() {
             </Card>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-on-surface">Related Projects</h2>
+              <h2 className="text-lg font-bold text-on-surface">Related SNHU Tools</h2>
               <p>
-                Explore the <a className="font-semibold text-primary hover:underline" href="https://snhu-courses.vercel.app" target="_blank" rel="noreferrer">SNHU Course Prerequisites Tool</a> and the <a className="font-semibold text-primary hover:underline" href="https://snhu-transfers.vercel.app" target="_blank" rel="noreferrer">SNHU Transfer Equivalency List</a> for complementary planning information.
+                SNHU Tools is a small family of unofficial planning sites. They do not share runtime
+                data, but each complements the others:
               </p>
+              <ul className="list-disc space-y-1 pl-5">
+                <li>
+                  <a className="font-semibold text-primary hover:underline" href="https://snhu-courses.vercel.app">
+                    Course Prerequisites
+                  </a>{" "}
+                  explores individual course dependency chains.
+                </li>
+                <li>
+                  <a className="font-semibold text-primary hover:underline" href="https://snhu-transfers.vercel.app">
+                    Transfer Equivalencies
+                  </a>{" "}
+                  explores accepted transfer mappings.
+                </li>
+                <li>
+                  <span className="font-semibold text-on-surface">Degree Map</span> puts courses into
+                  program-level context with requirements and prerequisite graphs.
+                </li>
+              </ul>
               <p>
                 This project is open source and the code may be found at{" "}
                 <a
                   className="font-semibold text-primary hover:underline"
                   href="https://github.com/andrewtryder/snhu-degreemap"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                 >
                   github.com/andrewtryder/snhu-degreemap
                 </a>

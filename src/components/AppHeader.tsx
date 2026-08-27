@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { SearchIcon, GridIcon } from "lucide-react";
 import { ProgramBrowserDialog } from "./ProgramBrowserDialog";
 import { Button } from "./ui/Button";
+import { BrandBadge } from "./BrandBadge";
+import { SNHUToolsNav } from "./SNHUToolsNav";
+import { CURRENT_TOOL_ID } from "@/lib/snhuTools";
 
 export interface AppHeaderProps {
   currentPage?: "home" | "programs" | "program-detail" | "about";
@@ -13,7 +16,7 @@ export interface AppHeaderProps {
 }
 
 const searchInputClassName =
-  "w-full rounded-full border border-outline-variant bg-surface-container-low py-2 pl-10 pr-4 text-sm text-on-surface outline-none transition-all placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary";
+  "w-full rounded-full border border-outline-variant bg-surface-container-low py-2 pl-10 pr-4 text-sm text-on-surface outline-none transition-all placeholder:text-on-surface-variant focus:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface";
 
 export function AppHeader({ currentPage = "home", initialPrograms = [] }: AppHeaderProps) {
   const router = useRouter();
@@ -33,39 +36,29 @@ export function AppHeader({ currentPage = "home", initialPrograms = [] }: AppHea
     <>
       <header className="sticky top-0 z-30 border-b border-surface-variant bg-surface">
         <div className="mx-auto grid w-full max-w-[var(--spacing-container-max)] grid-cols-1 gap-3 px-4 py-3 md:px-8 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
-          {/* Brand Home Link */}
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="inline-flex shrink-0 items-baseline gap-2 justify-self-start rounded-lg border border-surface-variant bg-surface-container-low px-3 py-2 no-underline transition-colors hover:border-primary hover:bg-surface-container"
-              aria-label="SNHU Degree Map home"
-            >
-              <span className="font-[family-name:var(--font-headline)] text-lg font-bold leading-none text-primary">
-                SNHU
-              </span>
-              <span className="font-[family-name:var(--font-headline)] text-sm font-semibold leading-none tracking-wide text-on-surface">
-                Degree Map
-              </span>
-            </Link>
+          <div className="flex items-center gap-3">
+            <BrandBadge
+              productName="Degree Map"
+              ariaLabel="SNHU Degree Map home"
+            />
 
-            {/* Desktop Quick Nav */}
-            <nav className="hidden items-center gap-1 md:flex" aria-label="Main Navigation">
+            <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
               <Link
                 href="/programs"
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
                   currentPage === "programs"
-                    ? "bg-surface-container-lowest text-primary font-semibold shadow-xs"
-                    : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low"
+                    ? "bg-surface-container-lowest font-semibold text-primary shadow-xs"
+                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
                 }`}
               >
                 Programs
               </Link>
               <Link
                 href="/about"
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
                   currentPage === "about"
-                    ? "bg-surface-container-lowest text-primary font-semibold shadow-xs"
-                    : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low"
+                    ? "bg-surface-container-lowest font-semibold text-primary shadow-xs"
+                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
                 }`}
               >
                 About
@@ -73,7 +66,6 @@ export function AppHeader({ currentPage = "home", initialPrograms = [] }: AppHea
             </nav>
           </div>
 
-          {/* Wide Global Search Form */}
           <div className="lg:col-start-2 lg:row-start-1">
             <form onSubmit={handleGlobalSearch} role="search" className="relative w-full min-w-0">
               <SearchIcon
@@ -92,23 +84,26 @@ export function AppHeader({ currentPage = "home", initialPrograms = [] }: AppHea
             </form>
           </div>
 
-          {/* Action Button & Browse Dialog Trigger */}
           <div className="flex items-center gap-2 lg:col-start-3 lg:row-start-1 lg:justify-self-end">
             <Button
               variant="primary"
               size="md"
               onClick={() => setIsBrowserOpen(true)}
-              className="w-full sm:w-auto"
+              className="min-w-0 flex-1 sm:flex-none"
             >
-              <GridIcon className="mr-1.5 h-4 w-4 shrink-0" />
-              <span>Browse Programs</span>
+              <GridIcon className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="truncate">Browse Programs</span>
             </Button>
+            <SNHUToolsNav currentToolId={CURRENT_TOOL_ID} />
           </div>
         </div>
       </header>
 
-      {/* ProgramBrowserDialog Modal */}
-      <ProgramBrowserDialog isOpen={isBrowserOpen} onClose={() => setIsBrowserOpen(false)} initialPrograms={initialPrograms} />
+      <ProgramBrowserDialog
+        isOpen={isBrowserOpen}
+        onClose={() => setIsBrowserOpen(false)}
+        initialPrograms={initialPrograms}
+      />
     </>
   );
 }
