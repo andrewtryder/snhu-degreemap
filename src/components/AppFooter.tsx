@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { SNHUToolsFooterLinks } from "./SNHUToolsFooterLinks";
-import { CURRENT_TOOL_ID, GITHUB_REPO_URL } from "@/lib/snhuTools";
+import { GITHUB_REPO_URL } from "@/lib/snhuTools";
 
 export function formatCatalogLastUpdated(lastUpdated: Date | string | null): string {
   if (!lastUpdated) return "Not available";
@@ -15,6 +14,9 @@ export function formatCatalogLastUpdated(lastUpdated: Date | string | null): str
     timeZone: "UTC",
   }).format(parsedDate);
 }
+
+const linkClassName =
+  "text-on-surface-variant transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-low rounded-sm";
 
 export function AppFooter({ lastUpdated = null }: { lastUpdated?: Date | string | null }) {
   const formattedDate = formatCatalogLastUpdated(lastUpdated);
@@ -33,32 +35,23 @@ export function AppFooter({ lastUpdated = null }: { lastUpdated?: Date | string 
           </p>
           <nav
             aria-label="Footer navigation"
-            className="flex flex-col items-center gap-3 md:items-end"
+            className="flex flex-wrap justify-center gap-4 text-xs font-medium tracking-wide md:justify-end"
           >
-            <div className="flex flex-wrap justify-center gap-4 text-xs font-medium tracking-wide md:justify-end">
-              <Link
-                href="/about"
-                className="text-on-surface-variant transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-low rounded-sm"
-              >
-                About
-              </Link>
-              <Link
-                href="/programs"
-                className="text-on-surface-variant transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-low rounded-sm"
-              >
-                Programs
-              </Link>
-              <a
-                href={GITHUB_REPO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-on-surface-variant transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-low rounded-sm"
-              >
-                Source Code
-                <span className="sr-only"> (opens in a new tab)</span>
-              </a>
-            </div>
-            <SNHUToolsFooterLinks currentToolId={CURRENT_TOOL_ID} />
+            <Link href="/programs" className={linkClassName}>
+              Programs
+            </Link>
+            <Link href="/about" className={linkClassName}>
+              About
+            </Link>
+            <a
+              href={GITHUB_REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={linkClassName}
+            >
+              Source Code
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
           </nav>
         </div>
       </div>
