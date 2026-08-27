@@ -28,4 +28,9 @@ describe("Observability & Secret Redaction Engine", () => {
     expect(sanitized.postgresUrl).toBe("[REDACTED]");
     expect(sanitized.revalidateSecret).toBe("[REDACTED]");
   });
+
+  it("enables browser-extension error filtering in Honeybadger browser config", async () => {
+    const { config } = await import("../../honeybadger.browser.config");
+    expect(config.ignoreBrowserExtensionErrors).toBe(true);
+  });
 });

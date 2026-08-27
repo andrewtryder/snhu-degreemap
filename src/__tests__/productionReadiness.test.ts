@@ -88,4 +88,21 @@ describe("Production Readiness — Fixture Isolation Gate", () => {
     expect(program).not.toBeNull();
     expect(program?.title).toContain("Computer Science");
   });
+
+  it("yields empty catalog and null program in Vercel Preview runtime when POSTGRES_URL is unset", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    delete process.env.POSTGRES_URL;
+
+    const { getPrograms, getProgramBySlug, searchPrograms } = await import("@/lib/serverData");
+
+    const programs = await getPrograms();
+    expect(programs).toEqual([]);
+
+    const program = await getProgramBySlug("computer-science-bs");
+    expect(program).toBeNull();
+
+    const searchResults = await searchPrograms("computer");
+    expect(searchResults).toEqual([]);
+  });
 });
