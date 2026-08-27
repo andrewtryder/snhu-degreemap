@@ -3,29 +3,31 @@ import { describe, it, expect } from "vitest";
 import { AppFooter, formatCatalogLastUpdated } from "@/components/AppFooter";
 
 describe("AppFooter Component", () => {
-  it("renders the two-column navigation and disclaimer footer", async () => {
-    render(await AppFooter({ lastUpdated: new Date("2026-07-31T12:00:00Z") }));
+  it("renders compact footer with last updated, disclaimer, and SNHU Tools links", () => {
+    render(<AppFooter lastUpdated={new Date("2026-07-31T12:00:00Z")} />);
 
-    expect(screen.getByRole("heading", { name: "Navigation & Resources" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Disclaimer" })).toBeInTheDocument();
-    expect(screen.queryByText("Disclaimer & Status")).not.toBeInTheDocument();
-    expect(screen.queryByText(/View Catalog Data Status/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Browse All Associate Programs" })).toHaveAttribute("href", "/programs/associate");
-    expect(screen.getByRole("link", { name: /Bachelor’s Programs/i })).toHaveAttribute("href", "/programs/bachelors");
-    expect(screen.getByRole("link", { name: "Browse All Graduate Programs" })).toHaveAttribute("href", "/programs/graduate");
-    expect(screen.getByRole("link", { name: "Browse Certificate Programs" })).toHaveAttribute("href", "/programs/certificates");
-    expect(screen.getByRole("link", { name: "About SNHU Degree Map" })).toHaveAttribute("href", "/about");
-    expect(screen.getByText("Last Updated: July 31, 2026")).toBeInTheDocument();
-    expect(screen.queryByText(/Open-source educational project/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Last Updated:/)).toBeInTheDocument();
+    expect(screen.getByText("July 31, 2026")).toBeInTheDocument();
+    expect(screen.getByText(/Unofficial SNHU site/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
+    expect(screen.getByRole("link", { name: "Programs" })).toHaveAttribute("href", "/programs");
+    expect(screen.getByRole("link", { name: /Source Code/i })).toHaveAttribute(
+      "href",
+      "https://github.com/andrewtryder/snhu-degreemap"
+    );
+    expect(screen.getByText("Course Prerequisites")).toBeInTheDocument();
+    expect(screen.getByText("Transfer Equivalencies")).toBeInTheDocument();
+    expect(screen.getByText("Degree Map", { selector: "[aria-current='page']" })).toBeInTheDocument();
   });
 
-  it("shows an honest fallback when synchronization data is unavailable", async () => {
-    render(await AppFooter({ lastUpdated: null }));
-    expect(screen.getByText("Last Updated: Not available")).toBeInTheDocument();
+  it("shows an honest fallback when synchronization data is unavailable", () => {
+    render(<AppFooter lastUpdated={null} />);
+    expect(screen.getByText(/Last Updated:/)).toBeInTheDocument();
+    expect(screen.getByText("Not available")).toBeInTheDocument();
   });
 
   it("formats cached timestamp strings and safely rejects invalid values", () => {
-    expect(formatCatalogLastUpdated("2026-07-31T22:52:52.021Z")).toBe("Last Updated: July 31, 2026");
-    expect(formatCatalogLastUpdated("not-a-date")).toBe("Last Updated: Not available");
+    expect(formatCatalogLastUpdated("2026-07-31T22:52:52.021Z")).toBe("July 31, 2026");
+    expect(formatCatalogLastUpdated("not-a-date")).toBe("Not available");
   });
 });

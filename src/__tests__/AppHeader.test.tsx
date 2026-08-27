@@ -40,4 +40,10 @@ describe("AppHeader Component", () => {
     const dialogTitle = screen.getByRole("heading", { name: /Browse SNHU Degree Programs/i });
     expect(dialogTitle).toBeInTheDocument();
   });
+
+  it("renders SNHU Tools navigation control", () => {
+    render(<AppHeader />);
+    expect(screen.getByText("Tools")).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Degree Map" })).toHaveAttribute("aria-current", "page");
+  });
 });
