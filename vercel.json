@@ -19,8 +19,8 @@
       "permanent": true
     },
     {
-      "source": "/:path*",
-      "destination": "https://snhu-tools.vercel.app/:path*",
+      "source": "/((?!sitemap\\.xml|robots\\.txt).*)",
+      "destination": "https://snhu-tools.vercel.app/$1",
       "permanent": true
     }
   ]
