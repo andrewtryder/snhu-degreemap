@@ -1,87 +1,19 @@
-# SNHU Degree Map
+# snhu-degreemap
 
-Unofficial interactive SNHU degree maps with catalog-backed program requirements, prerequisite graphs, and course relationships.
+> This project has been superseded by [snhu-tools](https://github.com/andrewtryder/snhu-tools).
 
-The SNHU Degree Map application lets students browse SNHU degree programs, inspect requirement groups, and visualize prerequisite and corequisite relationships as an interactive graph.
+## Original Purpose
 
-## Live Site
+This repository formerly provided unofficial SNHU degree/program requirement and prerequisite mapping functionality, helping students visualize and plan their academic programs.
 
-**[https://snhu-degreemap.vercel.app](https://snhu-degreemap.vercel.app)**
+## Status
 
-## Why This Exists
+- All original functionality now lives in the consolidated **[snhu-tools](https://github.com/andrewtryder/snhu-tools)** project.
+- This repository remains deployed only to preserve legacy URLs and permanently redirect visitors to the active application.
+- The repository intentionally contains no application runtime or dependency stack.
 
-I built this site as a proud SNHU graduate who wanted a clearer way to understand:
+## Links
 
-- What courses make up a degree
-- How general education, core, major, concentration, and elective requirements fit together
-- Which courses may need to be completed before others
-- How prerequisite chains can affect degree planning
-
-This site is a planning and visualization aid, not an official degree audit or prescribed plan of study.
-
-## Disclaimer
-
-**This site is unofficial and is intended for informational purposes only.**
-
-- This project is not affiliated with, endorsed by, or operated by Southern New Hampshire University.
-- Catalog requirements, prerequisite rules, concentrations, course availability, and academic policies can change.
-- Parsed catalog data may be incomplete, delayed, or incorrectly interpreted.
-- A displayed graph is not an official recommended course sequence.
-- Students must verify requirements against the official SNHU Academic Catalog and with an academic advisor before making academic or financial decisions.
-
-## Related Projects
-
-- **[SNHU Course Prerequisites Tool](https://github.com/andrewtryder/snhu-courses)** ([Live Site](https://snhu-courses.vercel.app))
-- **[SNHU Transfer Equivalency List](https://github.com/andrewtryder/snhu-transfers)** ([Live Site](https://snhu-transfers.vercel.app))
-
-**How they differ:**
-
-- **Degree Map** visualizes requirements within a specific degree program.
-- **Courses** explores course-level prerequisite relationships independently of a degree.
-- **Transfers** explores unofficial transfer equivalencies from outside providers.
-
-## Local Development
-
-Install dependencies:
-
-```bash
-git clone https://github.com/andrewtryder/snhu-degreemap.git
-cd snhu-degreemap
-npm ci
-```
-
-Create a `.env` file (see `.env.example`):
-
-```bash
-cp .env.example .env
-```
-
-Start the development server:
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser.
-
-_Note: Database-backed program pages require a valid PostgreSQL connection and relevant Kuali configuration. Never commit `.env` files or API keys._
-
-## Available Scripts
-
-- `npm run dev` - Start the Next.js development server
-- `npm run build` - Create a production build
-- `npm run start` - Run the production server
-- `npm run lint` - Run ESLint
-- `npm test` - Run Vitest tests
-- `npm run test:watch` - Run Vitest tests in watch mode
-- `npm run db:migrate` - Run database migrations to create or update catalog tables
-- `npm run program:bootstrap` - Run an initial catalog import directly to live tables
-- `npm run program:sync` - Run the standard catalog synchronization, staging, validation, and promotion process
-
-## Contributing
-
-Contributions, bug reports, and focused pull requests are welcome. Because this application relies on an unstable upstream catalog payload structure, please open an issue before submitting substantial parser, schema, synchronization, or catalog-contract changes.
-
-## License
-
-No open-source license has currently been specified for this project. Copyright remains with the repository owner.
+- **GitHub**: [https://github.com/andrewtryder/snhu-tools](https://github.com/andrewtryder/snhu-tools)
+- **Live Application**: [https://snhu-tools.vercel.app/](https://snhu-tools.vercel.app/)
+- **Degree Map / Programs Section**: [https://snhu-tools.vercel.app/programs](https://snhu-tools.vercel.app/programs)

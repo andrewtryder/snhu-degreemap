@@ -1,25 +1,27 @@
 {
-  "headers": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": null,
+  "redirects": [
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        }
-      ]
+      "source": "/",
+      "destination": "https://snhu-tools.vercel.app/",
+      "permanent": true
+    },
+    {
+      "source": "/programs/bachelor",
+      "destination": "https://snhu-tools.vercel.app/programs/bachelors",
+      "permanent": true
+    },
+    {
+      "source": "/programs/certificate",
+      "destination": "https://snhu-tools.vercel.app/programs/certificates",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "destination": "https://snhu-tools.vercel.app/:path*",
+      "permanent": true
     }
   ]
 }
